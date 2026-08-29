@@ -722,47 +722,61 @@ ul.plain li::marker{color:var(--rule-2)}
     <h2>Working a problem</h2>
     <ol class="steps">
       <li>
-        <h3>Count</h3>
-        <p><code>m + r</code> against <code>2j</code>. If they do not match, stop &mdash; no amount of
-        algebra will help.</p>
+        <div>
+          <h3>Count</h3>
+          <p><code>m + r</code> against <code>2j</code>. If they do not match, stop &mdash; no amount of
+          algebra will help.</p>
+        </div>
       </li>
       <li>
-        <h3>Reactions, from the whole truss</h3>
-        <p>Treat the truss as one rigid body. <code>ΣM<sub>A</sub> = 0</code> gives
-        <code>B<sub>y</sub></code>, then <code>ΣF<sub>y</sub> = 0</code> gives
-        <code>A<sub>y</sub></code>, and <code>ΣF<sub>x</sub> = 0</code> gives
-        <code>A<sub>x</sub></code>. The internal arrangement of the bars makes no difference here at all
-        &mdash; swap the web for a solid plate and the reactions would be identical.</p>
-        <p>Everything downstream is measured from these numbers, so an error here quietly wrecks the
-        entire truss. Check them the other way round before you go on.</p>
+        <div>
+          <h3>Reactions, from the whole truss</h3>
+          <p>Treat the truss as one rigid body. <code>ΣM<sub>A</sub> = 0</code> gives
+          <code>B<sub>y</sub></code>, then <code>ΣF<sub>y</sub> = 0</code> gives
+          <code>A<sub>y</sub></code>, and <code>ΣF<sub>x</sub> = 0</code> gives
+          <code>A<sub>x</sub></code>. The internal arrangement of the bars makes no difference here at all
+          &mdash; swap the web for a solid plate and the reactions would be identical.</p>
+          <p>Everything downstream is measured from these numbers, so an error here quietly wrecks the
+          entire truss. Check them the other way round before you go on.</p>
+        </div>
       </li>
       <li>
-        <h3>Sweep for zero-force members</h3>
-        <p>Two rules, one line each, before any algebra. Then look again &mdash; a member found to be zero
-        can turn its neighbour into a two-member joint.</p>
+        <div>
+          <h3>Sweep for zero-force members</h3>
+          <p>Two rules, one line each, before any algebra. Then look again &mdash; a member found to be zero
+          can turn its neighbour into a two-member joint.</p>
+        </div>
       </li>
       <li>
-        <h3>Decide which method the question deserves</h3>
-        <p>One or two members wanted, somewhere in the middle? <strong>Sections.</strong> The whole truss?
-        <strong>Joints.</strong> In practice you mix them: a section to break into the middle, then joints
-        marching outward from there.</p>
+        <div>
+          <h3>Decide which method the question deserves</h3>
+          <p>One or two members wanted, somewhere in the middle? <strong>Sections.</strong> The whole truss?
+          <strong>Joints.</strong> In practice you mix them: a section to break into the middle, then joints
+          marching outward from there.</p>
+        </div>
       </li>
       <li>
-        <h3>If joints: start at a support and march</h3>
-        <p>Find a joint with two unknown members. Draw both as tension. Write the equation that has one
-        unknown in it first &mdash; usually the one perpendicular to the other member. Carry each answer
-        forward to the far end of its bar and move on.</p>
+        <div>
+          <h3>If joints: start at a support and march</h3>
+          <p>Find a joint with two unknown members. Draw both as tension. Write the equation that has one
+          unknown in it first &mdash; usually the one perpendicular to the other member. Carry each answer
+          forward to the far end of its bar and move on.</p>
+        </div>
       </li>
       <li>
-        <h3>If sections: cut three, take moments where two meet</h3>
-        <p>Cut through a bay, not through a joint. Keep the side with fewer forces on it. For the member
-        you want, find where the lines of the other two intersect and take moments there. If those two are
-        parallel chords, sum forces perpendicular to them instead.</p>
+        <div>
+          <h3>If sections: cut three, take moments where two meet</h3>
+          <p>Cut through a bay, not through a joint. Keep the side with fewer forces on it. For the member
+          you want, find where the lines of the other two intersect and take moments there. If those two are
+          parallel chords, sum forces perpendicular to them instead.</p>
+        </div>
       </li>
       <li>
-        <h3>Read the signs, then check</h3>
-        <p>Positive is tension, negative is compression, and neither is an error. Verify with an equation
-        you have not used: a leftover joint equation, or the same member solved by the other method.</p>
+        <div>
+          <h3>Read the signs, then check</h3>
+          <p>Positive is tension, negative is compression, and neither is an error. Verify with an equation
+          you have not used: a leftover joint equation, or the same member solved by the other method.</p>
+        </div>
       </li>
     </ol>
 
