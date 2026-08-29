@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Truss Analysis Lab Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+*,*::before,*::after{box-sizing:border-box}
+
+:root{
+  --paper:#eef1f6;
+  --sheet:#ffffff;
+  --sheet-2:#f5f7fa;
+  --ink:#101825;
+  --ink-2:#39445a;
+  --mid:#5b6678;
+  --faint:#8d97a8;
+  --rule:#d8dee9;
+  --rule-2:#bcc5d4;
+  --accent:#2455c9;
+  --accent-soft:#e6ecfa;
+  --f1:#7a2ecc;
+  --f2:#b3246e;
+  --f3:#5c6a1a;
+  --ten:#0d7490;
+  --ten-soft:#e3f0f4;
+  --comp:#c2410c;
+  --comp-soft:#fbeee7;
+  --zero:#8d97a8;
+  --res:#0a8a63;
+  --res-soft:#e4f2ed;
+  --cut:#b3261e;
+  --warn:#bd5f0c;
+  --warn-soft:#fbf0e5;
+  --mem:#97a2b5;
+  --sup:#3f4a5c;
+  --grid:#e4e9f1;
+  --shadow:0 1px 2px rgba(16,24,37,.05),0 14px 34px -24px rgba(16,24,37,.4);
+  --cond:'IBM Plex Sans Condensed',ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif;
+  --serif:'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0a0e15;
+    --sheet:#141a24;
+    --sheet-2:#1a212c;
+    --ink:#e9eef6;
+    --ink-2:#b5c0d0;
+    --mid:#8b97aa;
+    --faint:#69738a;
+    --rule:#242c3a;
+    --rule-2:#354052;
+    --accent:#7ea3ff;
+    --accent-soft:#1b2740;
+    --f1:#b78cff;
+    --f2:#ff7ab0;
+    --f3:#b9c565;
+    --ten:#38bdf8;
+    --ten-soft:#102c3a;
+    --comp:#fb923c;
+    --comp-soft:#33210f;
+    --zero:#69738a;
+    --res:#33d29b;
+    --res-soft:#123128;
+    --cut:#fb7185;
+    --warn:#f0a44a;
+    --warn-soft:#33240f;
+    --mem:#5d6a80;
+    --sup:#a7b3c7;
+    --grid:#1c2431;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 38px -26px rgba(0,0,0,.95);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0a0e15;
+  --sheet:#141a24;
+  --sheet-2:#1a212c;
+  --ink:#e9eef6;
+  --ink-2:#b5c0d0;
+  --mid:#8b97aa;
+  --faint:#69738a;
+  --rule:#242c3a;
+  --rule-2:#354052;
+  --accent:#7ea3ff;
+  --accent-soft:#1b2740;
+  --f1:#b78cff;
+  --f2:#ff7ab0;
+  --f3:#b9c565;
+  --ten:#38bdf8;
+  --ten-soft:#102c3a;
+  --comp:#fb923c;
+  --comp-soft:#33210f;
+  --zero:#69738a;
+  --res:#33d29b;
+  --res-soft:#123128;
+  --cut:#fb7185;
+  --warn:#f0a44a;
+  --warn-soft:#33240f;
+  --mem:#5d6a80;
+  --sup:#a7b3c7;
+  --grid:#1c2431;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 38px -26px rgba(0,0,0,.95);
+}
+
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0;font-family:var(--cond);text-wrap:balance;letter-spacing:-.005em}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+.sheet{max-width:1080px;margin:0 auto;padding:0 26px 84px}
+
+/* ---------- masthead ---------- */
+.mast{padding:52px 0 30px;border-bottom:2px solid var(--ink)}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.16em;color:var(--mid);
+}
+.mast h1{
+  font-size:clamp(2.6rem,6.6vw,4.1rem);font-weight:700;line-height:1.02;
+  margin:14px 0 0;letter-spacing:-.022em;
+}
+.mast .lede{
+  font-size:1.16rem;line-height:1.55;color:var(--ink-2);
+  max-width:56ch;margin-top:16px;
+}
+.conv{
+  display:flex;flex-wrap:wrap;gap:0;margin-top:26px;
+  border:1px solid var(--rule);border-radius:9px;overflow:hidden;background:var(--sheet);
+}
+.conv div{
+  flex:1 1 190px;padding:12px 16px;border-right:1px solid var(--rule);
+}
+.conv div:last-child{border-right:0}
+.conv b{
+  display:block;font-family:var(--mono);font-size:10.5px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.13em;color:var(--faint);margin-bottom:3px;
+}
+.conv span{font-family:var(--mono);font-size:14.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.launch{margin-top:20px;font-family:var(--mono);font-size:13.5px}
+.launch a{
+  color:var(--accent);text-decoration:none;
+  border-bottom:1px solid var(--rule-2);padding-bottom:3px;
+}
+.launch a:hover{border-bottom-color:var(--accent)}
+
+/* ---------- section rail ---------- */
+section{
+  display:grid;grid-template-columns:118px minmax(0,1fr);gap:30px;
+  padding:44px 0;border-bottom:1px solid var(--rule);
+}
+.rail{padding-top:6px}
+.rail .tag{
+  font-family:var(--mono);font-size:10.5px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.13em;color:var(--faint);
+  display:block;line-height:1.5;
+}
+.body{min-width:0;display:flex;flex-direction:column;gap:18px}
+.body > h2{font-size:1.85rem;font-weight:600;line-height:1.15;letter-spacing:-.018em}
+.body > h3{
+  font-size:1.03rem;font-weight:600;color:var(--ink);
+  margin-top:6px;letter-spacing:0;
+}
+.body p{max-width:66ch}
+.body p + p{margin-top:-4px}
+em{font-style:italic}
+strong{font-weight:600;color:var(--ink)}
+code,.k{
+  font-family:var(--mono);font-size:.86em;
+  background:var(--sheet-2);border:1px solid var(--rule);border-radius:5px;
+  padding:1px 5px;color:var(--ink);white-space:nowrap;
+}
+.k{background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:500}
+.t{color:var(--ten);font-weight:600}
+.c{color:var(--comp);font-weight:600}
+kbd{
+  font-family:var(--mono);font-size:.8em;padding:2px 6px;border-radius:5px;
+  border:1px solid var(--rule-2);border-bottom-width:2px;background:var(--sheet);color:var(--ink-2);
+}
+
+/* ---------- panels ---------- */
+.panel{
+  background:var(--sheet);border:1px solid var(--rule);border-radius:11px;
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.panel > h4{
+  font-family:var(--mono);font-size:10.5px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.13em;color:var(--faint);
+  padding:11px 16px;border-bottom:1px solid var(--rule);background:var(--sheet-2);
+}
+.panel .inner{padding:16px}
+figure{margin:0;background:var(--sheet);border:1px solid var(--rule);border-radius:11px;overflow:hidden}
+figure svg{display:block;width:100%;height:auto;background:var(--sheet)}
+figcaption{
+  font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--mid);
+  padding:11px 16px;border-top:1px solid var(--rule);background:var(--sheet-2);
+}
+.svg-lab{font-family:var(--mono);font-size:12px;font-weight:500}
+.svg-sm{font-family:var(--mono);font-size:10.5px}
+.svg-big{font-family:var(--mono);font-size:13px;font-weight:600}
+
+/* ---------- data tables ---------- */
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.11em;color:var(--faint);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.mono,th.mono{font-family:var(--mono);font-size:.85rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.first{font-family:var(--cond);font-weight:600;font-size:1rem;white-space:nowrap}
+
+/* ---------- steps (a real sequence) ---------- */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:20px;counter-reset:s}
+ol.steps > li{counter-increment:s;display:grid;grid-template-columns:30px minmax(0,1fr);gap:15px}
+ol.steps > li::before{
+  content:counter(s,decimal-leading-zero);
+  font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);
+  padding-top:4px;letter-spacing:.04em;
+}
+ol.steps h3{font-family:var(--cond);font-size:1.06rem;font-weight:600;margin-bottom:5px}
+ol.steps p{max-width:62ch}
+ol.steps p + p{margin-top:6px}
+
+ul.plain{margin:0;padding:0 0 0 20px;display:flex;flex-direction:column;gap:9px}
+ul.plain li{max-width:63ch}
+ul.plain li::marker{color:var(--rule-2)}
+
+/* ---------- callout ---------- */
+.callout{
+  border-left:3px solid var(--res);background:var(--res-soft);
+  border-radius:0 10px 10px 0;padding:16px 20px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.callout h3{font-family:var(--cond);font-size:1.1rem;font-weight:600;color:var(--ink)}
+.callout p{max-width:62ch}
+.warnbox{
+  border-left:3px solid var(--warn);background:var(--warn-soft);
+  border-radius:0 10px 10px 0;padding:16px 20px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.warnbox p{max-width:62ch}
+
+/* ---------- two-up ---------- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.two .panel .inner p{font-size:.95rem;max-width:none}
+.two .panel .inner{display:flex;flex-direction:column;gap:10px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:baseline;margin-right:2px}
+
+.foot{
+  padding:34px 0 0;font-family:var(--mono);font-size:12px;line-height:1.7;
+  color:var(--faint);max-width:74ch;
+}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .sheet{padding:0 18px 60px}
+  section{grid-template-columns:minmax(0,1fr);gap:14px;padding:34px 0}
+  .rail{padding-top:0}
+  .two{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+}
+</style>
+
+</head>
+<body>
+<div class="sheet">
+
+<header class="mast">
+  <span class="eyebrow">Statics · Field guide</span>
+  <h1>Truss Analysis Lab</h1>
+  <p class="lede">A lab for the moment a truss stops being a picture of triangles and becomes a set of
+  numbers you can get at two different ways. Everything here rests on one simplification &mdash; every
+  member is a <em>two-force member</em> &mdash; and one discipline: <em>assume tension, always</em>.</p>
+  <div class="conv">
+    <div><b>Member forces</b><span>tension is positive</span></div>
+    <div><b>Forces</b><span>up is positive</span></div>
+    <div><b>Moments</b><span>counter-clockwise is positive</span></div>
+    <div><b>Supports</b><span>A is a pin, B a roller</span></div>
+  </div>
+  <p class="launch"><a href="index.html">Open the lab &rarr;</a></p>
+</header>
+
+<section>
+  <div class="rail"><span class="tag">The whole idea</span></div>
+  <div class="body">
+    <h2>One number per member</h2>
+    <p>A truss is a set of straight bars, pinned at their ends, <strong>loaded only at those pins</strong>.
+    Take any one bar out and look at it on its own: it has forces at two points and nowhere else. A body
+    held by exactly two forces can only balance if they are equal, opposite, and <em>along the line
+    joining them</em>.</p>
+    <p>So every member does one of two things. It <strong class="t">pulls</strong> its two joints together,
+    or it <strong class="c">pushes</strong> them apart. Nothing else is available to it &mdash; no shear,
+    no bending, no twist. One signed number says everything there is to say about a member, and that is
+    what makes a truss with fifty bars something you can do by hand.</p>
+
+    <figure>
+      <svg viewBox="0 0 720 200" role="img" aria-label="A member in tension pulling each of its joints toward the other, beside a member in compression pushing each of its joints away">
+        <text x="210" y="44" text-anchor="middle" class="svg-big" fill="var(--ten)">F = +48.33 kN</text>
+        <line x1="110" y1="100" x2="310" y2="100" stroke="var(--ten)" stroke-width="7" stroke-linecap="round" opacity=".28"/>
+        <line x1="110" y1="100" x2="186" y2="100" stroke="var(--ten)" stroke-width="3"/>
+        <path d="M200 100 L182 93 L182 107 Z" fill="var(--ten)"/>
+        <line x1="310" y1="100" x2="234" y2="100" stroke="var(--ten)" stroke-width="3"/>
+        <path d="M220 100 L238 93 L238 107 Z" fill="var(--ten)"/>
+        <circle cx="110" cy="100" r="5.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="2.2"/>
+        <circle cx="310" cy="100" r="5.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="2.2"/>
+        <text x="210" y="140" text-anchor="middle" class="svg-lab" fill="var(--ink)">TENSION</text>
+        <text x="210" y="160" text-anchor="middle" class="svg-sm" fill="var(--mid)">each joint pulled toward the other</text>
+        <text x="210" y="180" text-anchor="middle" class="svg-sm" fill="var(--faint)">the bottom chord L0L1</text>
+
+        <line x1="360" y1="30" x2="360" y2="172" stroke="var(--rule)" stroke-width="1"/>
+
+        <text x="510" y="44" text-anchor="middle" class="svg-big" fill="var(--comp)">F = &#8722;60.42 kN</text>
+        <line x1="410" y1="100" x2="610" y2="100" stroke="var(--comp)" stroke-width="7" stroke-linecap="round" opacity=".28"/>
+        <line x1="496" y1="100" x2="424" y2="100" stroke="var(--comp)" stroke-width="3"/>
+        <path d="M410 100 L428 93 L428 107 Z" fill="var(--comp)"/>
+        <line x1="524" y1="100" x2="596" y2="100" stroke="var(--comp)" stroke-width="3"/>
+        <path d="M610 100 L592 93 L592 107 Z" fill="var(--comp)"/>
+        <circle cx="410" cy="100" r="5.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="2.2"/>
+        <circle cx="610" cy="100" r="5.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="2.2"/>
+        <text x="510" y="140" text-anchor="middle" class="svg-lab" fill="var(--ink)">COMPRESSION</text>
+        <text x="510" y="160" text-anchor="middle" class="svg-sm" fill="var(--mid)">each joint pushed away</text>
+        <text x="510" y="180" text-anchor="middle" class="svg-sm" fill="var(--faint)">the end diagonal L0U1</text>
+      </svg>
+      <figcaption>The arrows are what the member does to the joints, which is the only thing the equations ever see. Both numbers come from the Pratt truss the lab opens with.</figcaption>
+    </figure>
+
+    <div class="callout">
+      <h3>Assume tension. Every member. Every time.</h3>
+      <p>Draw each unknown as an arrow <strong>pointing away from the joint, along the member</strong>.
+      Then solve. A positive answer means the member really does pull &mdash; tension. A negative answer
+      means it pushes &mdash; compression &mdash; and <strong>you do not redraw anything</strong>. The
+      minus sign <em>is</em> the answer.</p>
+      <p>This is not a stylistic preference. Students who guess the sense at each joint and flip arrows
+      to suit lose a sign somewhere around the fourth joint, and the error then travels through every
+      member downstream of it. Students who assume tension do not.</p>
+    </div>
+
+    <p>Two idealisations pay for all this: the joints are frictionless pins, and the members are
+    weightless. Real gusset plates are welded and real steel is heavy. The errors are small, they are
+    conservative in the ways that matter, and the analysis you get is the one every code of practice is
+    written around.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Counting</span></div>
+  <div class="body">
+    <h2>Count before you compute</h2>
+    <p>Each joint is a set of <em>concurrent</em> forces, so it gives you two equations &mdash;
+    <code>ΣF<sub>x</sub> = 0</code> and <code>ΣF<sub>y</sub> = 0</code> &mdash; and <strong>no moment
+    equation at all</strong>, because every force at a joint passes through the same point. That is
+    <code>2j</code> equations. The unknowns are one force per member plus the reaction components.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th class="mono">m + r vs 2j</th><th>What you have</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><td class="first">m + r = 2j</td><td><strong>Statically determinate.</strong> Equilibrium alone fixes every bar force.</td><td>Carry on. Nothing about the material, the member sizes or the sag can enter.</td></tr>
+          <tr><td class="first">m + r &gt; 2j</td><td><strong>Indeterminate.</strong> Redundant members, or extra supports.</td><td>Statics cannot finish it. You need compatibility &mdash; a later course.</td></tr>
+          <tr><td class="first">m + r &lt; 2j</td><td><strong>A mechanism.</strong> Too few bars to hold the shape.</td><td>It folds up. Not a structure at all.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The lab does this count for you and prints the verdict in the header of the <span class="k">Truss</span>
+    card. It takes ten seconds by hand and it tells you whether the method you are about to spend twenty
+    minutes on can work at all.</p>
+
+    <div class="warnbox">
+      <p>Counting equal is <em>necessary but not sufficient</em>. The bars still have to be arranged
+      sensibly. Drag a joint in the lab until three members become collinear and the count still reads
+      <code>m + r = 2j</code> while the truss quietly becomes a mechanism &mdash; the header switches to
+      <em>mechanism</em> and the worked solution says why. That is worth doing once on purpose.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Method of<br>joints</span></div>
+  <div class="body">
+    <h2>Two equations, so two unknowns</h2>
+    <p>Isolate one joint. The members pull or push on it along their own lines, the load and the reaction
+    act on it too, and the lot must balance. Two equations &mdash; which settle <strong>two</strong>
+    unknowns and not one more.</p>
+    <p>So the march cannot start anywhere you like. It has to begin at a joint where only two members are
+    still unknown, which in practice means a support joint. Once that joint is solved, its member forces
+    are known at the <em>far</em> end too, which drops the unknown count at the next joint along. Solve,
+    carry forward, repeat.</p>
+
+    <figure>
+      <svg viewBox="0 0 720 300" role="img" aria-label="A free body of the pin joint L0 showing the 36.25 kilonewton reaction and the two unknown member forces assumed as tension, with the two equilibrium equations solved beside it">
+        <line x1="230" y1="180" x2="420" y2="180" stroke="var(--mem)" stroke-width="6" stroke-linecap="round" opacity=".3"/>
+        <line x1="230" y1="180" x2="382" y2="66" stroke="var(--mem)" stroke-width="6" stroke-linecap="round" opacity=".3"/>
+        <circle cx="230" cy="180" r="62" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="6 5" opacity=".8"/>
+
+        <line x1="230" y1="180" x2="346" y2="180" stroke="var(--accent)" stroke-width="3"/>
+        <path d="M360 180 L342 173 L342 187 Z" fill="var(--accent)"/>
+        <text x="366" y="176" class="svg-lab" fill="var(--accent)">F<tspan font-size="9" dy="3">L0L1</tspan></text>
+
+        <line x1="230" y1="180" x2="323" y2="110" stroke="var(--accent)" stroke-width="3"/>
+        <path d="M334 102 L316 105 L324 117 Z" fill="var(--accent)"/>
+        <text x="330" y="92" class="svg-lab" fill="var(--accent)">F<tspan font-size="9" dy="3">L0U1</tspan></text>
+
+        <line x1="230" y1="285" x2="230" y2="204" stroke="var(--res)" stroke-width="3.2" stroke-linecap="round"/>
+        <path d="M230 190 L222 210 L238 210 Z" fill="var(--res)"/>
+        <text x="222" y="272" text-anchor="end" class="svg-lab" fill="var(--res)">A<tspan font-size="9" dy="3">y</tspan><tspan dy="-3"> = 36.25</tspan></text>
+
+        <path d="M282 180 A 52 52 0 0 0 271 149" fill="none" stroke="var(--faint)" stroke-width="1.3"/>
+        <text x="292" y="160" class="svg-sm" fill="var(--mid)">&#952; = 36.87&#176;</text>
+        <circle cx="230" cy="180" r="5" fill="var(--sup)"/>
+        <text x="206" y="200" text-anchor="end" class="svg-lab" fill="var(--sup)">L0</text>
+
+        <text x="430" y="76" class="svg-lab" fill="var(--mid)">&#931;F<tspan font-size="9" dy="3">y</tspan><tspan dy="-3"> = 0</tspan></text>
+        <text x="430" y="100" class="svg-lab" fill="var(--ink)">0.600 F<tspan font-size="9" dy="3">L0U1</tspan><tspan dy="-3"> + 36.25 = 0</tspan></text>
+        <text x="430" y="124" class="svg-lab" fill="var(--comp)">F<tspan font-size="9" dy="3">L0U1</tspan><tspan dy="-3"> = &#8722;60.42 kN</tspan></text>
+        <text x="430" y="144" class="svg-sm" fill="var(--comp)">negative &#8594; compression</text>
+
+        <text x="430" y="192" class="svg-lab" fill="var(--mid)">&#931;F<tspan font-size="9" dy="3">x</tspan><tspan dy="-3"> = 0</tspan></text>
+        <text x="430" y="216" class="svg-lab" fill="var(--ink)">F<tspan font-size="9" dy="3">L0L1</tspan><tspan dy="-3"> + 0.800(&#8722;60.42) = 0</tspan></text>
+        <text x="430" y="240" class="svg-lab" fill="var(--ten)">F<tspan font-size="9" dy="3">L0L1</tspan><tspan dy="-3"> = +48.33 kN</tspan></text>
+        <text x="430" y="260" class="svg-sm" fill="var(--ten)">positive &#8594; tension</text>
+      </svg>
+      <figcaption>Joint L0 of the opening Pratt truss. Both unknowns are drawn as tension — away from the joint — before anything is known about them. Only the diagonal has a vertical component, so ΣFy has one unknown in it and can be solved on its own.</figcaption>
+    </figure>
+
+    <p>Notice the order the equations came out in. <code>ΣF<sub>y</sub></code> was used first, not because
+    it comes first in the book, but because <strong>only one of the two unknowns has a vertical
+    component</strong>. Look for that at every joint: the equation with one unknown in it is the one to
+    write down.</p>
+
+    <h3>Near the end, joints start giving you checks</h3>
+    <p>As the march proceeds you will reach joints where only <em>one</em> member is still unknown. One
+    equation settles it; the other is then a <strong>free check</strong> that costs nothing. The lab
+    prints it as <span class="k">left over</span> and shows it closing on zero. When yours does not close,
+    the mistake is <em>upstream</em> &mdash; at a joint you did earlier, not the one that failed.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Zero-force<br>members</span></div>
+  <div class="body">
+    <h2>Some bars carry nothing</h2>
+    <p>Two rules find them by inspection, before any algebra. Both come from resolving in a cleverly
+    chosen direction, and both take one line.</p>
+
+    <figure>
+      <svg viewBox="0 0 720 230" role="img" aria-label="Rule one, a joint where two non-collinear members meet with no load and no support, both zero; and rule two, a joint where three members meet with two of them in line, the third zero">
+        <text x="185" y="34" text-anchor="middle" class="svg-lab" fill="var(--ink)">RULE 1 &mdash; two members</text>
+        <line x1="185" y1="150" x2="95" y2="80" stroke="var(--zero)" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 6"/>
+        <line x1="185" y1="150" x2="275" y2="80" stroke="var(--zero)" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 6"/>
+        <circle cx="185" cy="150" r="6" fill="var(--sheet)" stroke="var(--sup)" stroke-width="2.2"/>
+        <text x="128" y="108" text-anchor="middle" class="svg-big" fill="var(--zero)">0</text>
+        <text x="244" y="108" text-anchor="middle" class="svg-big" fill="var(--zero)">0</text>
+        <text x="185" y="180" text-anchor="middle" class="svg-sm" fill="var(--mid)">no load, no support, not in line</text>
+        <text x="185" y="200" text-anchor="middle" class="svg-sm" fill="var(--mid)">resolve along one &mdash; nothing</text>
+        <text x="185" y="216" text-anchor="middle" class="svg-sm" fill="var(--mid)">is left to cancel the other</text>
+
+        <line x1="360" y1="30" x2="360" y2="212" stroke="var(--rule)" stroke-width="1"/>
+
+        <text x="535" y="34" text-anchor="middle" class="svg-lab" fill="var(--ink)">RULE 2 &mdash; three, two in line</text>
+        <line x1="440" y1="150" x2="630" y2="150" stroke="var(--mem)" stroke-width="5" stroke-linecap="round"/>
+        <line x1="535" y1="150" x2="535" y2="76" stroke="var(--zero)" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 6"/>
+        <circle cx="535" cy="150" r="6" fill="var(--sheet)" stroke="var(--sup)" stroke-width="2.2"/>
+        <text x="553" y="106" class="svg-big" fill="var(--zero)">0</text>
+        <line x1="470" y1="120" x2="470" y2="150" stroke="var(--faint)" stroke-width="1.1" stroke-dasharray="4 4"/>
+        <line x1="600" y1="120" x2="600" y2="150" stroke="var(--faint)" stroke-width="1.1" stroke-dasharray="4 4"/>
+        <text x="535" y="180" text-anchor="middle" class="svg-sm" fill="var(--mid)">no load at the joint</text>
+        <text x="535" y="200" text-anchor="middle" class="svg-sm" fill="var(--mid)">resolve perpendicular to the pair &mdash;</text>
+        <text x="535" y="216" text-anchor="middle" class="svg-sm" fill="var(--mid)">the odd member stands alone</text>
+      </svg>
+      <figcaption>Rule 2 is the one that fires in most of the trusses here: L2U2 in the opening Pratt is zero, because U1U2 and U2U3 are collinear and nothing is applied at U2. Turn on the Zero-force chip to see it ringed.</figcaption>
+    </figure>
+
+    <p>Rule 1 needs a joint where only <em>two</em> members meet, which is rare once a truss has any depth
+    &mdash; nearly every interior joint here has three or more. You can manufacture one: load the
+    <span class="k">Triangle</span> preset, then set its load to zero, and both members at the apex go
+    quiet.</p>
+
+    <div class="warnbox">
+      <p><strong>Zero does not mean useless, and it does not mean permanent.</strong> A zero-force member
+      is zero <em>for this load case</em>. It still braces its neighbours against buckling, it carries
+      load the moment the loading changes, and it is often the only reason the truss is not a mechanism.
+      Never rub one out of the drawing &mdash; and never leave it out of the count.</p>
+      <p>Once you have found one, look again: a member known to be zero can turn its neighbour into a
+      two-member joint, and the rules fire a second time. That is why the lab's count of zero-force
+      members is sometimes larger than the number the two rules catch on the first pass.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Method of<br>sections</span></div>
+  <div class="body">
+    <h2>One cut, one member</h2>
+    <p>Suppose you want the bottom chord at midspan and nothing else. The march would grind through half
+    the truss to reach it. Instead, <strong>cut the truss in two and throw one half away</strong>.</p>
+    <p>Replace each severed bar by its force &mdash; pulling away from the body, as tension, exactly as at
+    a joint &mdash; and what is left is an ordinary rigid body in equilibrium. And a rigid body has
+    <strong>three</strong> equations, not two: <code>ΣF<sub>x</sub></code>, <code>ΣF<sub>y</sub></code>
+    and <code>ΣM</code> about any point you please. That extra moment equation is the whole advantage,
+    and it is why the rule is <strong>cut at most three members whose force you do not already know</strong>.</p>
+
+    <figure>
+      <svg viewBox="0 0 720 350" role="img" aria-label="A Pratt truss cut between L2 and L3, keeping the left portion, with the three cut member forces shown and the moment centre taken at joint L2">
+        <line x1="60" y1="210" x2="204" y2="210" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="204" y1="210" x2="348" y2="210" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="348" y1="210" x2="492" y2="210" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="492" y1="210" x2="636" y2="210" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="204" y1="102" x2="348" y2="102" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="348" y1="102" x2="492" y2="102" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="204" y1="210" x2="204" y2="102" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="348" y1="210" x2="348" y2="102" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="492" y1="210" x2="492" y2="102" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="60" y1="210" x2="204" y2="102" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="636" y1="210" x2="492" y2="102" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="204" y1="102" x2="348" y2="210" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="492" y1="102" x2="348" y2="210" stroke="var(--mem)" stroke-width="4.5" stroke-linecap="round"/>
+
+        <circle cx="60" cy="210" r="5" fill="var(--sheet)" stroke="var(--sup)" stroke-width="2.2"/>
+        <circle cx="204" cy="210" r="4.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="1.9"/>
+        <circle cx="348" cy="210" r="4.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="1.9"/>
+        <circle cx="492" cy="210" r="4.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="1.9"/>
+        <circle cx="636" cy="210" r="5" fill="var(--sheet)" stroke="var(--sup)" stroke-width="2.2"/>
+        <circle cx="204" cy="102" r="4.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="1.9"/>
+        <circle cx="348" cy="102" r="4.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="1.9"/>
+        <circle cx="492" cy="102" r="4.4" fill="var(--sheet)" stroke="var(--sup)" stroke-width="1.9"/>
+        <text x="52" y="232" text-anchor="end" class="svg-sm" fill="var(--sup)">L0</text>
+        <text x="204" y="232" text-anchor="middle" class="svg-sm" fill="var(--sup)">L1</text>
+        <text x="196" y="90" text-anchor="end" class="svg-sm" fill="var(--sup)">U1</text>
+        <text x="348" y="90" text-anchor="middle" class="svg-sm" fill="var(--sup)">U2</text>
+        <text x="500" y="90" class="svg-sm" fill="var(--sup)">U3</text>
+        <text x="500" y="232" class="svg-sm" fill="var(--sup)">L3</text>
+        <text x="644" y="232" class="svg-sm" fill="var(--sup)">L4</text>
+
+        <line x1="60" y1="272" x2="60" y2="228" stroke="var(--res)" stroke-width="3.2" stroke-linecap="round"/>
+        <path d="M60 214 L52 234 L68 234 Z" fill="var(--res)"/>
+        <text x="60" y="290" text-anchor="middle" class="svg-sm" fill="var(--res)">36.25</text>
+        <line x1="204" y1="222" x2="204" y2="258" stroke="var(--f1)" stroke-width="3" stroke-linecap="round"/>
+        <path d="M204 272 L197 254 L211 254 Z" fill="var(--f1)"/>
+        <text x="204" y="290" text-anchor="middle" class="svg-sm" fill="var(--f1)">40 kN</text>
+
+        <rect x="420" y="20" width="300" height="260" fill="var(--sheet)" opacity=".76"/>
+        <line x1="420" y1="46" x2="420" y2="266" stroke="var(--cut)" stroke-width="2.4" stroke-dasharray="10 6"/>
+        <text x="420" y="38" text-anchor="middle" class="svg-sm" fill="var(--cut)">the cut</text>
+
+        <line x1="348" y1="102" x2="404" y2="102" stroke="var(--accent)" stroke-width="3"/>
+        <path d="M416 102 L399 95 L399 109 Z" fill="var(--accent)"/>
+        <text x="354" y="126" class="svg-sm" fill="var(--accent)">F<tspan font-size="9" dy="3">U2U3</tspan></text>
+        <line x1="348" y1="210" x2="404" y2="210" stroke="var(--accent)" stroke-width="3"/>
+        <path d="M416 210 L399 203 L399 217 Z" fill="var(--accent)"/>
+        <text x="368" y="200" class="svg-sm" fill="var(--accent)">F<tspan font-size="9" dy="3">L2L3</tspan></text>
+        <line x1="348" y1="210" x2="392" y2="177" stroke="var(--accent)" stroke-width="3"/>
+        <path d="M403 169 L385 172 L393 184 Z" fill="var(--accent)"/>
+        <text x="384" y="156" class="svg-sm" fill="var(--accent)">F<tspan font-size="9" dy="3">L2U3</tspan></text>
+
+        <circle cx="348" cy="210" r="11" fill="none" stroke="var(--ink-2)" stroke-width="1.7"/>
+        <line x1="330" y1="210" x2="366" y2="210" stroke="var(--ink-2)" stroke-width="1.2"/>
+        <line x1="348" y1="192" x2="348" y2="228" stroke="var(--ink-2)" stroke-width="1.2"/>
+        <text x="348" y="250" text-anchor="middle" class="svg-lab" fill="var(--ink-2)">moment centre O</text>
+        <text x="348" y="268" text-anchor="middle" class="svg-sm" fill="var(--mid)">which is joint L2, at x = 8 m</text>
+
+        <text x="40" y="318" class="svg-lab" fill="var(--ink)">&#931;M<tspan font-size="9" dy="3">O</tspan><tspan dy="-3"> = 36.25(0&#8722;8) + (&#8722;40)(4&#8722;8) = &#8722;290 + 160 = &#8722;130 kN&#183;m</tspan></text>
+        <text x="40" y="340" class="svg-lab" fill="var(--comp)">U2U3 has arm &#8722;3 m about O &#8594; F = &#8722;(&#8722;130)/(&#8722;3) = &#8722;43.33 kN</text>
+      </svg>
+      <figcaption>The cut severs exactly three members. Both of the other two — L2L3 and L2U3 — run through L2, so about that point both have zero arm and vanish, leaving one equation in one unknown. No joint between L0 and here was ever touched.</figcaption>
+    </figure>
+
+    <h3>Choosing the moment centre is the whole method</h3>
+    <p>It is the same instinct as taking moments about a support to kill a reaction, only now you are
+    killing bar forces. For any one of the three, take moments about the point where the lines of the
+    <em>other two</em> intersect. Both pass through it, both have zero arm, both disappear.</p>
+
+    <div class="callout">
+      <h3>When the other two are parallel</h3>
+      <p>Cut a flat truss and the two chords you sever are parallel. Their lines never meet, so for the
+      <em>diagonal</em> there is no moment centre to be had. Sum forces <strong>perpendicular</strong> to
+      them instead &mdash; vertically &mdash; and both chords drop out just as cleanly, because neither
+      has a vertical component.</p>
+      <p>In the cut above that reads
+      <code>&minus;3.75 + 0.600 F<sub>L2U3</sub> = 0</code>, so
+      <code>F<sub>L2U3</sub> = +6.25 kN</code>. Read the equation again and it says something worth
+      remembering: <strong>the diagonal carries the shear on the section</strong>. That is why leaning
+      the diagonals the other way &mdash; a Howe instead of a Pratt &mdash; flips every one of them from
+      tension to compression.</p>
+    </div>
+
+    <p>Either half will do. The cut members must hold whichever portion you keep in equilibrium all by
+    themselves, and both halves give the same three forces, because each pair of internal forces is equal
+    and opposite. Keep the side with <strong>fewer forces on it</strong>; that is the only reason to
+    prefer one. The <span class="k">Keep left / right</span> switch in the lab rewrites the entire
+    solution so you can watch the two agree.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Getting around</span></div>
+  <div class="body">
+    <h2>The screen</h2>
+    <p>Three tabs across the top. <span class="k">Explore</span> is a sandbox, <span class="k">Walkthrough</span>
+    is a ten-step tour that drives the sandbox for you, and <span class="k">Practice</span> generates
+    problems and marks them. Beside them, a switch between <span class="k">Joints</span> and
+    <span class="k">Sections</span> &mdash; the same truss, two routes to the same numbers, and the checks
+    at the foot of the worked solution compare them.</p>
+
+    <div class="two">
+      <div class="panel">
+        <h4>Left &mdash; the diagram</h4>
+        <div class="inner">
+          <p>Member thickness follows force, and colour follows sense: <span class="t">tension</span>,
+          <span class="c">compression</span>, and a thin dashed grey for zero. You can read the load path
+          off the picture before you read a single number.</p>
+          <p><strong>Click a joint</strong> to put it in focus &mdash; the worked solution rebuilds the
+          march up to that joint. <strong>Click a member</strong> to select it; in Sections that also
+          moves the moment centre to the one belonging to that member.</p>
+          <p><strong>Drag a joint</strong> to reshape the truss and watch every force follow. Drag the
+          tail of a load arrow to change its size and direction. In Sections, drag the red line to move
+          the cut.</p>
+          <p>Scroll to zoom, drag the background to pan, <span class="k">Fit</span> to recover.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h4>Right &mdash; the numbers</h4>
+        <div class="inner">
+          <p><span class="k">Truss</span> holds the span, the depth and the panel count, and in Sections
+          the cut position with <span class="k">&larr; panel</span> / <span class="k">panel &rarr;</span>
+          buttons that step it a bay at a time. The header reads <em>determinate</em>,
+          <em>indeterminate</em>, <em>unstable</em> or <em>mechanism</em> &mdash; a one-word diagnosis of
+          what you have built.</p>
+          <p><span class="k">Joint loads</span> is the table: up to four rows, each naming the joint it
+          acts at, its magnitude and its direction. The <span class="k">M about A</span> column is
+          computed for you. Beneath it the green strip gives
+          <code>A<sub>x</sub></code>, <code>A<sub>y</sub></code> and <code>B<sub>y</sub></code>.</p>
+          <p><span class="k">Member forces</span> is the whole answer, signed, with T or C beside each.
+          Click a row to highlight that member on the diagram.</p>
+          <p><span class="k">Worked solution</span> shows every substitution in full, then a block of
+          checks &mdash; the reactions the other way round, every joint closing, the chords behaving like
+          a beam, the depth argument, the zero-force count, the classic mistake.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Overlays</h3>
+    <p>The chips above the diagram add one layer of reasoning each. Turn them on when you want to see a
+    step, off when they crowd the picture.</p>
+    <div class="panel scroll">
+      <table>
+        <thead><tr><th>Chip</th><th>Where</th><th>What it draws</th></tr></thead>
+        <tbody>
+          <tr><td class="first">Reactions</td><td class="mono">both</td><td>The support reaction arrows. Worth switching <em>off</em> first, so you predict which support takes more before the lab tells you.</td></tr>
+          <tr><td class="first">Member forces</td><td class="mono">both</td><td>The value and sense written on every member. Off, the colours alone still tell you tension from compression.</td></tr>
+          <tr><td class="first">Joint free body</td><td class="mono">Joints</td><td>Rings the focused joint and draws the forces acting on it — the diagram you should be drawing on paper. The member labels behind it are hidden so nothing collides.</td></tr>
+          <tr><td class="first">Free body</td><td class="mono">Sections</td><td>Greys out the half you threw away, so only the kept portion and its three cut forces are left.</td></tr>
+          <tr><td class="first">Moment centre</td><td class="mono">Sections</td><td>Marks <strong>O</strong> for the selected member and traces the two members that pass through it.</td></tr>
+          <tr><td class="first">Zero-force</td><td class="mono">both</td><td>Rings the members that carry nothing, and the joint whose rule found each one.</td></tr>
+          <tr><td class="first">Dimensions</td><td class="mono">both</td><td>Span and depth bars. In Practice these are on by default — they are part of the question.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Presets</h3>
+    <p><span class="k">Triangle</span> and <span class="k">King post</span> are small enough to do in your
+    head. <span class="k">Pratt</span> and <span class="k">Howe</span> are the same bars with the interior
+    diagonals leaning opposite ways &mdash; press one then the other and watch every diagonal change sign.
+    <span class="k">Warren</span> drops the verticals for a single zig-zag. <span class="k">Roof</span>
+    pitches the top chord to an apex. <span class="k">Random</span> shuffles the lot.</p>
+    <p>Pratt, Howe and Roof need an <strong>even</strong> number of panels &mdash; with an odd count the
+    middle bay would take two diagonals and the truss would stop being determinate. The lab rounds you up
+    to the next even number rather than building something broken.</p>
+
+    <h3>Units and scale</h3>
+    <p>The button reading <code>kN &middot; m</code> switches to <code>lb &middot; ft</code>. Only the
+    labels change &mdash; the arithmetic is identical. Load and reaction arrows are drawn to their own
+    force scale, shown by the bar at the foot of the diagram; a 50 kN arrow is not &ldquo;50 metres
+    long&rdquo;. Distances come off the ruler along the top and the dimension bars.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">The one feature<br>to actually use</span></div>
+  <div class="body">
+    <h2>Click a joint in the middle</h2>
+    <div class="callout">
+      <h3>Set <strong>Show</strong> to <strong>to this joint</strong>, then click around</h3>
+      <p>The worked solution rebuilds itself as the <em>shortest legal chain of joints</em> that reaches
+      the one you clicked. Click a joint out in the middle of the truss and the panel will show you the
+      three or four joints that have to be solved first, in order, before that one has only two unknowns
+      left in it.</p>
+      <p>That is the thing about the method of joints that a worked example in a book cannot show you:
+      <strong>the order is forced, and it is forced by arithmetic, not by convention</strong>. You cannot
+      start in the middle, and now you can see exactly why not.</p>
+    </div>
+    <p>Switch to <span class="k">whole truss</span> to read the entire march end to end &mdash; that is
+    the version worth printing as a model answer.</p>
+
+    <h3>And in Sections, click each of the three cut members in turn</h3>
+    <p>Watch <strong>O</strong> jump to a different intersection each time, and watch the equation change
+    character when you land on the diagonal: no moment centre, a force sum instead. Three members, three
+    different one-line equations, no simultaneous solving anywhere.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Method</span></div>
+  <div class="body">
+    <h2>Working a problem</h2>
+    <ol class="steps">
+      <li>
+        <h3>Count</h3>
+        <p><code>m + r</code> against <code>2j</code>. If they do not match, stop &mdash; no amount of
+        algebra will help.</p>
+      </li>
+      <li>
+        <h3>Reactions, from the whole truss</h3>
+        <p>Treat the truss as one rigid body. <code>ΣM<sub>A</sub> = 0</code> gives
+        <code>B<sub>y</sub></code>, then <code>ΣF<sub>y</sub> = 0</code> gives
+        <code>A<sub>y</sub></code>, and <code>ΣF<sub>x</sub> = 0</code> gives
+        <code>A<sub>x</sub></code>. The internal arrangement of the bars makes no difference here at all
+        &mdash; swap the web for a solid plate and the reactions would be identical.</p>
+        <p>Everything downstream is measured from these numbers, so an error here quietly wrecks the
+        entire truss. Check them the other way round before you go on.</p>
+      </li>
+      <li>
+        <h3>Sweep for zero-force members</h3>
+        <p>Two rules, one line each, before any algebra. Then look again &mdash; a member found to be zero
+        can turn its neighbour into a two-member joint.</p>
+      </li>
+      <li>
+        <h3>Decide which method the question deserves</h3>
+        <p>One or two members wanted, somewhere in the middle? <strong>Sections.</strong> The whole truss?
+        <strong>Joints.</strong> In practice you mix them: a section to break into the middle, then joints
+        marching outward from there.</p>
+      </li>
+      <li>
+        <h3>If joints: start at a support and march</h3>
+        <p>Find a joint with two unknown members. Draw both as tension. Write the equation that has one
+        unknown in it first &mdash; usually the one perpendicular to the other member. Carry each answer
+        forward to the far end of its bar and move on.</p>
+      </li>
+      <li>
+        <h3>If sections: cut three, take moments where two meet</h3>
+        <p>Cut through a bay, not through a joint. Keep the side with fewer forces on it. For the member
+        you want, find where the lines of the other two intersect and take moments there. If those two are
+        parallel chords, sum forces perpendicular to them instead.</p>
+      </li>
+      <li>
+        <h3>Read the signs, then check</h3>
+        <p>Positive is tension, negative is compression, and neither is an error. Verify with an equation
+        you have not used: a leftover joint equation, or the same member solved by the other method.</p>
+      </li>
+    </ol>
+
+    <div class="panel scroll">
+      <h4>What truss depth actually buys you &mdash; the opening Pratt, doubled from 3 m to 6 m</h4>
+      <table>
+        <thead><tr><th>Member</th><th class="mono">3 m deep</th><th class="mono">6 m deep</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td class="first">U1U2 &mdash; top chord</td><td class="mono">&minus;43.33</td><td class="mono">&minus;21.67</td><td>Exactly halved. A chord force is a bending moment divided by the lever arm between the chords.</td></tr>
+          <tr><td class="first">L0L1 &mdash; bottom chord</td><td class="mono">+48.33</td><td class="mono">+24.17</td><td>The same, with the sign the other way: the chords are a couple.</td></tr>
+          <tr><td class="first">L1U1 &mdash; vertical</td><td class="mono">+40.00</td><td class="mono">+40.00</td><td>Untouched. It hangs the panel load off the top chord, and depth has nothing to do with that.</td></tr>
+          <tr><td class="first">U1L2 &mdash; diagonal</td><td class="mono">&minus;6.25</td><td class="mono">&minus;4.51</td><td>Smaller, but only because it is now steeper. Its <em>vertical</em> component is unchanged — it still carries the same shear.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>That table is the entire argument for building a truss instead of a beam, and you can reproduce it
+    in ten seconds by typing <code>6</code> into the <span class="k">depth</span> box.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Practice</span></div>
+  <div class="body">
+    <h2>Getting marked</h2>
+    <p>The <span class="k">Practice</span> tab locks the truss and generates a fresh problem. Everything
+    you need is in the paragraph at the top of the card &mdash; the truss type, the span, the depth, the
+    panel count, which joints carry what. Read it from there, not off the picture; the diagram is a sketch
+    to think against, with dimensions on and every force hidden. Zoom and pan still work.</p>
+    <p><kbd>Enter</kbd> or <span class="k">Check</span> marks your answers; a tick or a cross appears in
+    each box, so you can see exactly where a chain of work went wrong rather than just that it did. Your
+    score sits in the card header, and <strong>only your first attempt at each problem counts</strong> &mdash;
+    press <span class="k">Show solution</span> whenever you want the full working, which then appears
+    beneath the buttons in the same format as the Explore tab.</p>
+
+    <div class="panel scroll">
+      <h4>Seven kinds of problem</h4>
+      <table>
+        <thead><tr><th>Asks about</th><th>What it wants</th><th class="mono">Boxes</th></tr></thead>
+        <tbody>
+          <tr><td class="first">Reactions</td><td>The truss as one rigid body, before any bar force</td><td class="mono">A<sub>y</sub>, B<sub>y</sub></td></tr>
+          <tr><td class="first">A support joint</td><td>The first joint of the march: resolve, do not guess</td><td class="mono">A<sub>y</sub>, two member forces</td></tr>
+          <tr><td class="first">Zero-force</td><td>How many members do nothing, and one of them by name</td><td class="mono">a count, one force</td></tr>
+          <tr><td class="first">A marched chain</td><td>A member two or three joints in from the support</td><td class="mono">A<sub>y</sub>, one member force</td></tr>
+          <tr><td class="first">A chord by sections</td><td>Where the moment centre <em>is</em>, then the force</td><td class="mono">x of O, one member force</td></tr>
+          <tr><td class="first">A diagonal by sections</td><td>The shear on the cut, then the bar force that carries it</td><td class="mono">ΣF<sub>y</sub>, one member force</td></tr>
+          <tr><td class="first">Depth</td><td>A chord force now, and again with the truss twice as deep</td><td class="mono">two member forces</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Every member-force box takes a <strong>signed</strong> number with tension positive, so a
+    compression member is entered as a negative. The lab will not accept a magnitude with the sign left
+    off, and that is deliberate: the sign is half of what a bar force tells you. Reaction boxes are
+    upward-positive as usual, and <code>x of O</code> is an ordinary coordinate measured from the
+    left-hand support.</p>
+
+    <div class="warnbox">
+      <p>The two <strong>sections</strong> problems are the ones worth slowing down for, because each has
+      a step before the answer that is easy to skip. The chord problem asks <em>where O is</em> before it
+      asks for the force &mdash; if you cannot name that point, you are not using the method, you are
+      guessing at it. The diagonal problem asks for <em>the net vertical force on the kept portion</em>
+      first, which is the shear, and then makes you resolve it onto a sloping bar.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Feedback</span></div>
+  <div class="body">
+    <h2>Mistakes it will name</h2>
+    <p>When an answer is wrong the lab does not just say so &mdash; it compares what you typed against the
+    specific wrong turns that produce it, and names the one you took. If you see one of these, the
+    sentence is describing your actual arithmetic, not offering a generic hint.</p>
+
+    <div class="panel scroll">
+      <table>
+        <thead><tr><th>If it says</th><th>You did this</th><th>The fix</th></tr></thead>
+        <tbody>
+          <tr><td class="first">Right size, wrong sign</td><td class="mono">|F| for F</td><td>Assume tension for every unknown and let the arithmetic decide. A negative bar force is compression, not a mistake.</td></tr>
+          <tr><td class="first">The reaction straight into a member</td><td class="mono">F = A<sub>y</sub></td><td>Only the <em>vertical component</em> of a sloping bar balances the reaction: <code>F = &minus;A<sub>y</sub>/sin θ</code>, which is larger than A<sub>y</sub>.</td></tr>
+          <tr><td class="first">The right pair, swapped over</td><td class="mono">two members exchanged</td><td>Only the inclined member has a vertical component, so ΣF<sub>y</sub> settles that one; the horizontal member falls out of ΣF<sub>x</sub> afterwards.</td></tr>
+          <tr><td class="first">The force in the other member at that joint</td><td class="mono">neighbour's value</td><td>Both come out of the same pair of equations, but the question named one of them. Check which.</td></tr>
+          <tr><td class="first">The moment centre is not a support</td><td class="mono">O at A</td><td>O is where the lines of the <em>other two cut members</em> meet — usually the joint at the far end of the diagonal. Killing a reaction is a different trick.</td></tr>
+          <tr><td class="first">That is where you cut</td><td class="mono">O = x of the cut</td><td>The centre is a joint of the truss, chosen so the two unknowns you do not want both pass through it.</td></tr>
+          <tr><td class="first">Divided by the member's length</td><td class="mono">F = ΣM / L</td><td>Divide by its <em>perpendicular distance from O</em>. For a level chord that is the truss depth, not the panel length.</td></tr>
+          <tr><td class="first">That is a moment, not a force</td><td class="mono">F = ΣM<sub>O</sub></td><td>Divide the moment by the arm to turn it into a bar force. Check your units.</td></tr>
+          <tr><td class="first">You have given the shear itself</td><td class="mono">F = ΣF<sub>y</sub></td><td>The diagonal is inclined, so only its vertical component balances the shear. Divide by <code>sin θ</code>.</td></tr>
+          <tr><td class="first">Resolved with the wrong function</td><td class="mono">ΣF<sub>y</sub> / cos θ</td><td>The vertical equation needs the vertical component: <code>sin θ</code>, not <code>cos θ</code>.</td></tr>
+          <tr><td class="first">You split the load equally</td><td class="mono">both = ΣF/2</td><td>Halves are right only when the load resultant lands midway between the supports.</td></tr>
+          <tr><td class="first">That is the total applied load</td><td class="mono">A<sub>y</sub> = ΣF</td><td>The two reactions carry it <em>together</em>; the moment equation divides it between them.</td></tr>
+          <tr><td class="first">Only the members the rules catch</td><td class="mono">count too low</td><td>A member found to be zero can make its neighbour a two-member joint. Sweep again.</td></tr>
+          <tr><td class="first">You have given the same force twice</td><td class="mono">depth ignored</td><td>A chord force is <code>M / depth</code>. Doubling the depth halves it; it does not leave it alone, and it certainly does not double it.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>One more it will point out even when you are right: <strong>a negative member force is an answer,
+    not an error</strong>. It means the bar is a strut rather than a tie, and that distinction is the
+    reason a Pratt truss is the usual choice in steel &mdash; its interior diagonals go into tension under
+    ordinary downward load, and a slender tie cannot buckle while a slender strut can.</p>
+
+    <p>The other error the lab will not let you make quietly is starting the march at a joint with three
+    unknown members. Two equations cannot settle three forces, however long you stare at them, and if no
+    joint anywhere has fewer than three the worked solution says so outright &mdash; that is precisely the
+    situation the method of sections was invented for.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Reference</span></div>
+  <div class="body">
+    <h2>Keys and formulas</h2>
+    <div class="two">
+      <div class="panel">
+        <h4>Keyboard</h4>
+        <div class="inner">
+          <ul class="plain">
+            <li><kbd>[</kbd> <kbd>]</kbd> step the focus from joint to joint</li>
+            <li>Arrow keys nudge the joint in focus &mdash; or the cut, in Sections</li>
+            <li><kbd>Shift</kbd> while dragging ignores the snap</li>
+            <li><kbd>+</kbd> <kbd>&minus;</kbd> zoom, <kbd>0</kbd> fits the view</li>
+            <li><kbd>Enter</kbd> checks your answers in Practice</li>
+          </ul>
+          <p>The <span class="k">Snap</span> control sets how coarsely everything lands &mdash; joint
+          positions, load sizes, angles and the cut together. Set it to <span class="k">off</span> for
+          free dragging.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h4>Taking work away</h4>
+        <div class="inner">
+          <p>The two icons at the top right copy the worked solution as plain text, or print it. Both
+          include every substitution <em>and the full member force table</em>, so the print output works
+          as a handout or a model answer.</p>
+          <p>In Practice, press <span class="k">Show solution</span> before printing, or the page will
+          carry the problem without the working.</p>
+          <p>The third icon switches between light and dark, and remembers your choice.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel scroll">
+      <h4>Everything on one line</h4>
+      <table>
+        <thead><tr><th>Quantity</th><th class="mono">Formula</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td class="first">Determinacy</td><td class="mono">m + r = 2j</td><td>Necessary, not sufficient</td></tr>
+          <tr><td class="first">At a joint</td><td class="mono">ΣF<sub>x</sub> = 0, ΣF<sub>y</sub> = 0</td><td>No moment equation exists</td></tr>
+          <tr><td class="first">Force on a joint from a bar</td><td class="mono">F &middot; û</td><td>û points from the joint toward the far end; tension is positive</td></tr>
+          <tr><td class="first">Roller reaction</td><td class="mono">B<sub>y</sub> = &minus;ΣM<sub>A</sub> / (x<sub>B</sub>&minus;x<sub>A</sub>)</td><td>Moments about the pin</td></tr>
+          <tr><td class="first">Pin reactions</td><td class="mono">A<sub>y</sub> = &minus;ΣF<sub>y</sub> &minus; B<sub>y</sub>, &nbsp; A<sub>x</sub> = &minus;ΣF<sub>x</sub></td><td>The roller offers nothing horizontal</td></tr>
+          <tr><td class="first">Cut member, general</td><td class="mono">F = &minus;ΣM<sub>O</sub> / d</td><td><code>d</code> is the signed perpendicular arm about O</td></tr>
+          <tr><td class="first">Chord, parallel-chord truss</td><td class="mono">F = &minus;ΣM<sub>O</sub> / depth</td><td>O is the joint on the opposite chord</td></tr>
+          <tr><td class="first">Diagonal, parallel chords</td><td class="mono">F = &minus;ΣF<sub>y</sub> / sin θ</td><td>The diagonal carries the shear</td></tr>
+          <tr><td class="first">Zero-force, rule 1</td><td class="mono">2 members, no load</td><td>Both zero, if not collinear</td></tr>
+          <tr><td class="first">Zero-force, rule 2</td><td class="mono">3 members, 2 collinear</td><td>The odd one is zero</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The two section formulas are the same equation twice. When the other two cut members meet at a
+    point, kill them with a moment; when they are parallel and never meet, kill them with a force sum
+    perpendicular to both. Either way you are choosing the equation in which two of your three unknowns
+    are not present &mdash; which, once you have seen it, is the only idea in this entire topic.</p>
+  </div>
+</section>
+
+<p class="foot">
+Loads act at joints only, members are pin-jointed and weightless, and every member is therefore a
+two-force member carrying force along its own axis. Member forces are signed with tension positive.
+Up and counter-clockwise are positive; angles are measured from the +x axis. Every figure in the lab is
+computed from exact values and rounded only for display, so a rounded intermediate step may differ from
+the final one in the last digit &mdash; do not chase it. If your answer disagrees with the lab in the
+second decimal place, check your rounding before you check your method.
+</p>
+
+</div>
+</body>
+</html>
