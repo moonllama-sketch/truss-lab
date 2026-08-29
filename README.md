@@ -10,6 +10,14 @@ It follows the vector-addition → force-systems → beam-reactions labs, and co
 their conventions: up and counter-clockwise positive, angles from the +x axis, a
 worked solution that shows formula → substitution → value for every step.
 
+## Files
+
+- `index.html` — the lab.
+- `guide.html` — the student field guide: a static page, no JavaScript, with four
+  figures all drawn from the one Pratt truss the lab opens with, so the numbers
+  accumulate instead of restarting. It links to the lab by a relative `index.html`
+  href, so **the two must stay in the same folder**.
+
 ## What it teaches
 
 **Tension is positive, everywhere.** Every unknown bar force is drawn pulling its
