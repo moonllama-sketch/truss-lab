@@ -685,11 +685,28 @@ ul.plain li::marker{color:var(--rule-2)}
     middle bay would take two diagonals and the truss would stop being determinate. The lab rounds you up
     to the next even number rather than building something broken.</p>
 
+    <h3>Reading the labels</h3>
+    <p>Every number on the diagram is placed to stay clear of every other one. A member force sits beside
+    its own bar, but <em>which</em> side, and how far along it, depends on what else is competing for that
+    patch of paper. Match a label to its member by <strong>proximity and colour</strong> rather than by
+    expecting it always to sit squarely at the midpoint. On a truss with a lot of members the numbers
+    shrink a little to make room, and joint names shuffle round to whichever side of their joint is
+    clearest.</p>
+    <p>When a truss gets dense enough that the picture is tight, the <span class="k">Member forces</span>
+    table is the authority: it lists every member whatever the diagram is doing, and clicking a row
+    highlights that bar on the drawing. That is the reliable way to pin a number to a member, and it is
+    worth using rather than squinting.</p>
+
     <h3>Units and scale</h3>
     <p>The button reading <code>kN &middot; m</code> switches to <code>lb &middot; ft</code>. Only the
     labels change &mdash; the arithmetic is identical. Load and reaction arrows are drawn to their own
     force scale, shown by the bar at the foot of the diagram; a 50 kN arrow is not &ldquo;50 metres
     long&rdquo;. Distances come off the ruler along the top and the dimension bars.</p>
+    <p>The arrows inside a <strong>free body</strong> &mdash; at a joint, or on a cut portion &mdash; are
+    the exception. They are sized to fit the joint they belong to, so their <em>lengths</em> are not
+    comparable with each other or with the load arrows. Their <em>directions</em> are exact, and that is
+    what they are there for: away from the joint means tension, into it means compression. Read the
+    magnitudes off the labels, not off the arrows.</p>
   </div>
 </section>
 
