@@ -112,9 +112,12 @@ Before delivery the lab was driven headlessly over HTTP:
   extreme spans and depths, zero and enormous loads, and dragged-into-degeneracy
   geometry: no thrown errors and no `NaN`, `Infinity` or stray `undefined` in the
   emitted SVG, worked solution, checks or member table.
-- **100 layout measurements** of every SVG `<text>` via `getBBox()` against the
-  `viewBox`, at desktop and at a 375 px mobile viewport: nothing clipped, and no
-  horizontal page overflow.
+- **Layout measured, not eyed.** Every SVG `<text>` checked via `getBBox()` against the
+  `viewBox` at desktop and at a 375 px mobile viewport — nothing clipped, no horizontal
+  page overflow — and every *pair* of labels checked for overlap across 240 randomised
+  states. That pair check is what turned up the crowding the placement pass then fixed:
+  26 overlapping pairs per 40 states before, under 1 after, with the worst overlap
+  shrinking from 374 px² to 133.
 - **Every text label on the stage across 40 practice problems**, to prove no member
   force, reaction or section value leaks onto the locked diagram before the student
   presses Check. It did, at first — the section arrows were drawn ungated, printing
@@ -126,6 +129,15 @@ that stopped tracking the method once the walkthrough switched it; and a claim a
 truss depth that the numbers contradicted — it is the *verticals*, not the diagonals,
 that depth leaves untouched. Section results were also checked by hand against the
 joint results for a Pratt and a Warren.
+
+Labels are placed rather than positioned: each one registers the box it occupies and
+later labels are steered into the first free spot from a list of candidates — around a
+joint, the widest gap between the bars meeting there; along a member, either side and
+then slid towards either end; beside an arrow, stepping back and out. When nothing is
+free a label takes the spot that collides *least*, and member forces are placed largest
+first so any residue lands on the least important number. Getting that right meant
+fixing my own collision boxes, which used the font size as the line height when the
+rendered box is about 1.32× that — near-misses were being called clear.
 
 The builder was driven the same way, with synthesised pointer events rather than
 direct calls: joints dropped by clicking, members joined and unjoined by clicking

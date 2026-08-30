@@ -254,6 +254,10 @@ kbd{
   font-family:var(--mono);font-size:11px;font-weight:600;
   paint-order:stroke;stroke:var(--stage);stroke-width:4px;stroke-linejoin:round;
 }
+.mlab-s{
+  font-family:var(--mono);font-size:9.5px;font-weight:600;
+  paint-order:stroke;stroke:var(--stage);stroke-width:3.5px;stroke-linejoin:round;
+}
 .blab{
   font-family:var(--mono);font-size:12.5px;font-weight:600;
   paint-order:stroke;stroke:var(--stage);stroke-width:5px;stroke-linejoin:round;
@@ -1484,10 +1488,40 @@ function arrow(p0,p1,color,o){
 function seg(p0,p1,style){
   return '<line x1="'+n(p0.x)+'" y1="'+n(p0.y)+'" x2="'+n(p1.x)+'" y2="'+n(p1.y)+'" style="'+style+'"/>';
 }
-var FSZ = {vlab:14.5, slab:13, blab:12.5, clab:11.5, mlab:11, tickl:11};
+var FSZ = {vlab:14.5, slab:13, blab:12.5, clab:11.5, mlab:11, "mlab-s":9.5, tickl:11};
 function textW(s, cls){
   var t = String(s).replace(/<[^>]*>/g, "").replace(/&[a-zA-Z#0-9]+;/g, "x");
   return t.length * (FSZ[cls] || 12) * 0.605;
+}
+/* Every label emitted registers the box it occupies, so later ones can be steered
+   clear of it. Overlapping text is the one thing the halo cannot rescue. */
+var placed = [];
+var LPAD = 2;
+function resetLabels(){ placed = []; }
+var LEAD = 1.32;                       /* measured: rendered height / font-size */
+function labelBox(x, y, w, size, anchor){
+  var lo = (anchor === "start") ? x : (anchor === "end" ? x - w : x - w/2);
+  var h = size*LEAD;
+  return { x:lo - LPAD, y:y - h*0.78 - LPAD, w:w + 2*LPAD, h:h + 2*LPAD };
+}
+function boxClash(b){
+  var i, o;
+  for(i=0;i<placed.length;i++){
+    o = placed[i];
+    if(b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h) return true;
+  }
+  return false;
+}
+/* how much of this box is already spoken for */
+function clashArea(b){
+  var i, o, a = 0, ox, oy;
+  for(i=0;i<placed.length;i++){
+    o = placed[i];
+    ox = Math.min(b.x + b.w, o.x + o.w) - Math.max(b.x, o.x);
+    oy = Math.min(b.y + b.h, o.y + o.h) - Math.max(b.y, o.y);
+    if(ox > 0 && oy > 0) a += ox*oy;
+  }
+  return a;
 }
 /* a label whose anchor has scrolled off the frame is dropped; one merely overhanging
    the edge is slid back in, which beats letting it be cut in half */
@@ -1499,12 +1533,125 @@ function txt(x,y,s,cls,style,anchor){
   if(lo < pad) x += pad - lo;
   else if(lo + w > VB.w - pad) x -= lo + w - (VB.w - pad);
   y = clampNum(y, size*0.82 + 2, VB.h - 4);
+  placed.push(labelBox(x, y, w, size, anchor));
   return '<text x="'+n(x)+'" y="'+n(y)+'" class="'+cls+'" text-anchor="'+anchor+'" style="'+(style||"")+'">'+s+'</text>';
 }
-function tailLabel(tail, tip, s, color, cls, extra, drop){
-  var dx = tip.x-tail.x, dy = tip.y-tail.y, L = Math.hypot(dx,dy) || 1;
-  var k = (extra||0) + 14;
-  return txt(tail.x - dx/L*k, tail.y - dy/L*k + 4 + (drop||0), s, cls||"blab", "fill:"+color);
+/* try each spot in turn; take the first that lands clear, else the first that fits the
+   frame, else the preferred one and accept the clash */
+function txtFree(spots, s, cls, style){
+  var i, w = textW(s, cls), size = FSZ[cls] || 12, b, area, best = -1, bestA = Infinity;
+  if(!spots.length) return "";
+  for(i=0;i<spots.length;i++){
+    b = labelBox(spots[i].x, spots[i].y, w, size, "middle");
+    if(b.x < 1 || b.x + b.w > VB.w - 1 || b.y < 1 || b.y + b.h > VB.h - 1) continue;
+    area = clashArea(b);
+    if(area === 0) return txt(spots[i].x, spots[i].y, s, cls, style);
+    if(area < bestA){ bestA = area; best = i; }
+  }
+  if(best < 0) best = 0;
+  return txt(spots[best].x, spots[best].y, s, cls, style);
+}
+/* two lines that belong together are placed as one box, so a busy corner never
+   splits a name from its value */
+function txtBlock(spots, lines, cls, style){
+  var i, k, w = 0, size = FSZ[cls] || 12, b, best = -1, inFrame = -1, out = "";
+  if(!spots.length || !lines.length) return "";
+  for(k=0;k<lines.length;k++) w = Math.max(w, textW(lines[k], cls));
+  var h = size*LEAD + (lines.length - 1)*13;
+  var area, bestA = Infinity;
+  for(i=0;i<spots.length;i++){
+    b = { x:spots[i].x - w/2 - LPAD, y:spots[i].y - size*LEAD*0.78 - LPAD, w:w + 2*LPAD, h:h + 2*LPAD };
+    if(b.x < 1 || b.x + b.w > VB.w - 1 || b.y < 1 || b.y + b.h > VB.h - 1) continue;
+    if(inFrame < 0) inFrame = i;
+    area = clashArea(b);
+    if(area === 0){ best = i; break; }
+    if(area < bestA){ bestA = area; best = i; }
+  }
+  if(best < 0) best = (inFrame >= 0) ? inFrame : 0;
+  for(k=0;k<lines.length;k++) out += txt(spots[best].x, spots[best].y + k*13, lines[k], cls, style);
+  return out;
+}
+/* spots beyond the tail of an arrow, stepping back and then out to either side */
+function arrowSpots(tail, tip, base){
+  var dx = tip.x - tail.x, dy = tip.y - tail.y, L = Math.hypot(dx,dy) || 1;
+  var ux = dx/L, uy = dy/L, nx = -uy, ny = ux, c = [], k;
+  var d = [base, base + 10, base + 20, base + 30, base + 42];
+  for(k=0;k<d.length;k++) c.push({ x:tail.x - ux*d[k], y:tail.y - uy*d[k] + 4 });
+  for(k=0;k<3;k++){
+    var back = base + k*11, side = 16 + k*10;
+    c.push({ x:tail.x - ux*back + nx*side, y:tail.y - uy*back + ny*side + 4 });
+    c.push({ x:tail.x - ux*back - nx*side, y:tail.y - uy*back - ny*side + 4 });
+  }
+  return c;
+}
+/* spots ringing a point, for a marker that only needs to stay near it */
+function ringSpots(p, r){
+  var c = [], i, j;
+  for(j=0;j<2;j++) for(i=0;i<8;i++){
+    var a = -Math.PI/2 + i*Math.PI/4;
+    c.push({ x:p.x + Math.cos(a)*(r + j*10), y:p.y + Math.sin(a)*(r + j*10) + 4 });
+  }
+  return c;
+}
+/* the directions around a joint that no bar, load or reaction already occupies */
+function jointSpots(T, k, p, r, sol){
+  var ms = atNode(T, k), angs = [], i, u, out = [], lv, rv;
+  for(i=0;i<ms.length;i++){
+    u = memU(T, ms[i], k);
+    if(u.L) angs.push(Math.atan2(-u.y, u.x));
+  }
+  lv = loadAt(T, k);
+  if(mag(lv) > ZERO){ angs.push(Math.atan2(-lv.y, lv.x)); angs.push(Math.atan2(lv.y, -lv.x)); }
+  if(sol && sol.R && sol.R.ok){
+    rv = reactionAt(T, sol.R, k);
+    if(mag(rv) > ZERO){ angs.push(Math.atan2(-rv.y, rv.x)); angs.push(Math.atan2(rv.y, -rv.x)); }
+  }
+  if(!angs.length){
+    for(i=0;i<8;i++) out.push(i*Math.PI/4);
+  } else {
+    angs.sort(function(a,b){ return a-b; });
+    var gaps = [], a0, a1;
+    for(i=0;i<angs.length;i++){
+      a0 = angs[i];
+      a1 = (i === angs.length-1) ? angs[0] + 2*Math.PI : angs[i+1];
+      gaps.push({ mid:(a0+a1)/2, size:a1-a0 });
+    }
+    gaps.sort(function(a,b){ return b.size - a.size; });
+    for(i=0;i<gaps.length;i++) out.push(gaps[i].mid);
+  }
+  var spots = [], j, a;
+  for(j=0;j<3;j++){
+    for(i=0;i<out.length;i++){
+      a = out[i];
+      spots.push({ x:p.x + Math.cos(a)*(r + j*9), y:p.y + Math.sin(a)*(r + j*9) + 4 });
+    }
+  }
+  /* and, failing all of those, anywhere on a ring */
+  for(j=0;j<2;j++) for(i=0;i<8;i++){
+    a = i*Math.PI/4;
+    spots.push({ x:p.x + Math.cos(a)*(r + 6 + j*11), y:p.y + Math.sin(a)*(r + 6 + j*11) + 4 });
+  }
+  return spots;
+}
+/* along a member: both sides at increasing stand-off, then slid towards either end */
+function memberSpots(mid, nr, al, L){
+  var c = [], k, j, off = [13, 20, 28, 36], sl = [0, 0.16, 0.32, 0.44], d;
+  /* straight out from the midpoint first, then progressively slid towards either end,
+     so a label only wanders when it has to */
+  for(k=0;k<off.length;k++){
+    c.push({ x:mid.x + nr.x*off[k], y:mid.y + nr.y*off[k] + 4 });
+    c.push({ x:mid.x - nr.x*off[k], y:mid.y - nr.y*off[k] + 4 });
+  }
+  for(j=1;j<sl.length;j++){
+    d = Math.min(sl[j]*L, 60);
+    for(k=-1;k<=1;k+=2){
+      c.push({ x:mid.x + al.x*d*k + nr.x*13, y:mid.y + al.y*d*k + nr.y*13 + 4 });
+      c.push({ x:mid.x + al.x*d*k - nr.x*13, y:mid.y + al.y*d*k - nr.y*13 + 4 });
+      c.push({ x:mid.x + al.x*d*k + nr.x*22, y:mid.y + al.y*d*k + nr.y*22 + 4 });
+      c.push({ x:mid.x + al.x*d*k - nr.x*22, y:mid.y + al.y*d*k - nr.y*22 + 4 });
+    }
+  }
+  return c;
 }
 function bar(a, b, fixed, color, label, vertical){
   var w = "stroke:"+color+";stroke-width:2.6px;opacity:.95;fill:none";
@@ -1515,14 +1662,17 @@ function bar(a, b, fixed, color, label, vertical){
     s = seg({x:fixed,y:a},{x:fixed,y:b}, w)
       + seg({x:fixed-4,y:a},{x:fixed+4,y:a}, c)
       + seg({x:fixed-4,y:b},{x:fixed+4,y:b}, c);
-    if(label) s += txt(fixed - 6, (a+b)/2 + 4, label, "clab", "fill:"+color, "end");
+    if(label) s += txtFree([{x:fixed - 6 - textW(label,"clab")/2, y:(a+b)/2 + 4},
+                            {x:fixed + 8 + textW(label,"clab")/2, y:(a+b)/2 + 4}],
+                           label, "clab", "fill:"+color);
     return s;
   }
   if(Math.abs(b-a) < 2) return "";
   s = seg({x:a,y:fixed},{x:b,y:fixed}, w)
     + seg({x:a,y:fixed-4},{x:a,y:fixed+4}, c)
     + seg({x:b,y:fixed-4},{x:b,y:fixed+4}, c);
-  if(label) s += txt((a+b)/2, fixed - 6, label, "clab", "fill:"+color);
+  if(label) s += txtFree([{x:(a+b)/2, y:fixed - 6}, {x:(a+b)/2, y:fixed + 16}],
+                         label, "clab", "fill:"+color);
   return s;
 }
 function handleSVG(id, p, color, sel){
@@ -1537,7 +1687,7 @@ function pivotSVG(p, label){
   var s = '<circle cx="'+n(p.x)+'" cy="'+n(p.y)+'" r="'+r+'" style="fill:none;stroke:var(--pivot);stroke-width:1.6px"/>';
   s += seg({x:p.x-r-4,y:p.y},{x:p.x+r+4,y:p.y}, "stroke:var(--pivot);stroke-width:1.2px;fill:none");
   s += seg({x:p.x,y:p.y-r-4},{x:p.x,y:p.y+r+4}, "stroke:var(--pivot);stroke-width:1.2px;fill:none");
-  if(label) s += txt(p.x, p.y - 15, label, "blab", "fill:var(--pivot)");
+  if(label) s += txtFree(ringSpots(p, 16), label, "blab", "fill:var(--pivot)");
   return s;
 }
 
@@ -1557,14 +1707,16 @@ function gridSVG(){
     s += '<line class="gl'+(i % 5 === 0 ? " gl-major" : "")+'" x1="0" y1="'+n(v)+'" x2="'+VB.w+'" y2="'+n(v)+'"/>';
   }
   s += '<line class="axis" x1="0" y1="'+n(py(0))+'" x2="'+VB.w+'" y2="'+n(py(0))+'"/>';
+  var axisName = txt(VB.w - 8, 15, "x (" + U().L + ")", "tickl", "", "end");
   for(i = ix0; i <= ix1; i++){
     if(i % 5 !== 0) continue;
     v = px(i*st);
     if(v < 16 || v > VB.w - 16) continue;
-    s += txt(v, 15, stepText(i*st), "tickl");
+    var lab = stepText(i*st);
+    if(boxClash(labelBox(v, 15, textW(lab, "tickl"), FSZ.tickl, "middle"))) continue;
+    s += txt(v, 15, lab, "tickl");
   }
-  s += txt(VB.w - 8, 15, "x (" + U().L + ")", "tickl", "", "end");
-  return s;
+  return s + axisName;
 }
 function groundSVG(X, y, halfw){
   var st = "stroke:var(--sup);stroke-width:1.6px;fill:none;stroke-linecap:round";
@@ -1632,23 +1784,28 @@ function memberLabelsSVG(sol){
     var cmx = cutMembers(T, state.cut);
     for(i=0;i<cmx.length;i++) skip[cmx[i]] = true; /* the cut arrows already label these */
   }
-  for(i=0;i<T.members.length;i++){
-    if(skip[i]) continue;
+  var mcls = (T.members.length >= 14) ? "mlab-s" : "mlab";
+  var cs = P2(c), pa, pb, al, order = [];
+  for(i=0;i<T.members.length;i++) if(!skip[i]) order.push(i);
+  order.sort(function(a,b){ return Math.abs(sol.F[b]) - Math.abs(sol.F[a]); });
+  for(var oi=0;oi<order.length;oi++){
+    i = order[oi];
     F = sol.F[i];
-    mid = memMid(T, i);
-    d = { x:T.nodes[T.members[i][1]].x - T.nodes[T.members[i][0]].x,
-          y:T.nodes[T.members[i][1]].y - T.nodes[T.members[i][0]].y };
+    pa = P2(T.nodes[T.members[i][0]]);
+    pb = P2(T.nodes[T.members[i][1]]);
+    d = { x:pb.x - pa.x, y:pb.y - pa.y };
     L = Math.hypot(d.x, d.y) || 1;
-    nrm = { x:-d.y/L, y:d.x/L };
-    if(nrm.x*(mid.x - c.x) + nrm.y*(mid.y - c.y) < 0){ nrm.x = -nrm.x; nrm.y = -nrm.y; }
-    off = P2(mid);
+    al = { x:d.x/L, y:d.y/L };
+    nrm = { x:-al.y, y:al.x };
+    off = { x:(pa.x + pb.x)/2, y:(pa.y + pb.y)/2 };
+    if(nrm.x*(off.x - cs.x) + nrm.y*(off.y - cs.y) < 0){ nrm.x = -nrm.x; nrm.y = -nrm.y; }
     lab = (Math.abs(F) < 1e-4) ? "0" : (fmt(Math.abs(F),1) + " " + senseOf(F));
-    s += txt(off.x + nrm.x*13, off.y - nrm.y*13 + 4, lab, "mlab", "fill:"+colOf(F));
+    s += txtFree(memberSpots(off, nrm, al, L), lab, mcls, "fill:"+colOf(F));
   }
   return s;
 }
 function nodesSVG(sol){
-  var T = sol.T, c = trussCentre(), i, p, s = "", dx, dy, L;
+  var T = sol.T, i, p, s = "";
   for(i=0;i<T.nodes.length;i++){
     p = P2(T.nodes[i]);
     var isSup = (i === T.pin || i === T.roller);
@@ -1658,10 +1815,7 @@ function nodesSVG(sol){
     if(isJoints() && state.focus === i && !state.locked){
       s += '<circle cx="'+n(p.x)+'" cy="'+n(p.y)+'" r="10" style="fill:none;stroke:var(--accent);stroke-width:1.6px;opacity:.75"/>';
     }
-    dx = T.nodes[i].x - c.x; dy = T.nodes[i].y - c.y;
-    L = Math.hypot(dx, dy);
-    if(L < 1e-6){ dx = 0; dy = -1; L = 1; }
-    s += txt(p.x + dx/L*15, p.y - dy/L*15 + 4, T.nodes[i].name, "slab", "fill:var(--sup)");
+    s += txtFree(jointSpots(T, i, p, 15, sol), T.nodes[i].name, "slab", "fill:var(--sup)");
   }
   return s;
 }
@@ -1673,7 +1827,7 @@ function zeroSVG(sol){
     for(k2=0;k2<mm.length;k2++){
       p = P2(memMid(T, mm[k2]));
       s += '<circle cx="'+n(p.x)+'" cy="'+n(p.y)+'" r="7" style="fill:none;stroke:var(--zero);stroke-width:1.6px;stroke-dasharray:3 3"/>';
-      if(!state.showForces) s += txt(p.x, p.y + 4, "0", "clab", "fill:var(--zero)");
+      if(!state.showForces) s += txtFree(ringSpots(p, 0), "0", "clab", "fill:var(--zero)");
     }
     p = P2(T.nodes[z[i].node]);
     s += '<circle cx="'+n(p.x)+'" cy="'+n(p.y)+'" r="12" style="fill:none;stroke:var(--zero);stroke-width:1.3px;opacity:.7"/>';
@@ -1696,10 +1850,9 @@ function loadsSVG(sol){
     s += arrow(tail, tip, colorOf(i), {w:3.4, head:14});
     var anchor = sp.tipAt ? tail : tip;
     var other = sp.tipAt ? tip : tail;
-    s += tailLabel(anchor, other, loadName(i) + " = " + fmt(mag(ld.v),1) + " " + U().F, colorOf(i), "blab", 0);
-    if(Math.abs(ld.v.x) > ZERO){
-      s += tailLabel(anchor, other, "at " + fmt(ang(ld.v),0) + "°", colorOf(i), "clab", 0, 14);
-    }
+    var lines = [ loadName(i) + " = " + fmt(mag(ld.v),1) + " " + U().F ];
+    if(Math.abs(ld.v.x) > ZERO) lines.push("at " + fmt(ang(ld.v),0) + "°");
+    s += txtBlock(arrowSpots(anchor, other, 14), lines, "blab", "fill:"+colorOf(i));
   }
   return s;
 }
@@ -1721,13 +1874,15 @@ function reactionArrowSVG(p, F, dirY, name){
     tail = {x:p.x - (F > 0 ? L : -L), y:p.y};
   }
   s += arrow(tail, tip, CR, {w:4.2, head:15});
+  var lines = [ name + " = " + fmt(Math.abs(F),2) + " " + U().F ];
   if(dirY){
-    s += tailLabel(tail, tip, name + " = " + fmt(Math.abs(F),2) + " " + U().F, CR, "blab", 0);
-    if(F < 0) s += tailLabel(tail, tip, "holds down", CR, "clab", 14);
+    if(F < 0) lines.push("holds down");
+    s += txtBlock(arrowSpots(tail, tip, 14), lines, "blab", "fill:"+CR);
   } else {
     /* along the axis the tail label would lie on the chord it is drawn beside */
-    s += txt((tip.x + tail.x)/2, tip.y - 11, name + " = " + fmt(Math.abs(F),2) + " " + U().F,
-             "blab", "fill:"+CR);
+    var mid = {x:(tip.x + tail.x)/2, y:tip.y};
+    s += txtBlock([{x:mid.x, y:mid.y - 11}, {x:mid.x, y:mid.y + 19},
+                   {x:mid.x, y:mid.y - 24}, {x:mid.x, y:mid.y + 32}], lines, "blab", "fill:"+CR);
   }
   return s;
 }
@@ -1768,12 +1923,13 @@ function jointForceArrow(pw, u, F, label, extra, maxPx){
   var ux = u.x, uy = -u.y;
   var p1 = {x:p0.x + ux*Lpx, y:p0.y + uy*Lpx};
   if(Math.abs(F) < 1e-4){
-    return txt(p0.x + ux*26, p0.y + uy*26 + 4, label + " = 0", "clab", "fill:var(--zero)");
+    return txtFree(ringSpots({x:p0.x + ux*26, y:p0.y + uy*26}, 0), label + " = 0", "clab",
+                   "fill:var(--zero)");
   }
   if(F > 0) s += arrow(p0, p1, c, {w:3.2, head:12});
   else s += arrow(p1, p0, c, {w:3.2, head:12});
-  s += txt(p1.x + ux*15, p1.y + uy*15 + 4, label, "clab", "fill:"+c);
-  if(extra) s += txt(p1.x + ux*15, p1.y + uy*15 + 17, extra, "clab", "fill:"+c);
+  var lines = extra ? [label, extra] : [label];
+  s += txtBlock(arrowSpots({x:p1.x, y:p1.y}, {x:p0.x, y:p0.y}, 15), lines, "clab", "fill:"+c);
   return s;
 }
 function jointFBDSVG(sol){
@@ -1783,11 +1939,14 @@ function jointFBDSVG(sol){
   s += '<circle cx="'+n(p.x)+'" cy="'+n(p.y)+'" r="30" style="fill:var(--accent-soft);stroke:var(--accent);'
     +  'stroke-width:1.3px;stroke-dasharray:5 4;opacity:.75"/>';
   ms = atNode(T, k);
+  var shortest = 1e9;
+  for(i=0;i<ms.length;i++) shortest = Math.min(shortest, memLen(T, ms[i])*scale);
+  var cap = clampNum(shortest*0.45, 26, 58);
   for(i=0;i<ms.length;i++){
     u = memU(T, ms[i], k);
     F = sol.F[ms[i]];
     s += jointForceArrow(T.nodes[k], u, F, memName(T, ms[i]),
-                         Math.abs(F) < 1e-4 ? "" : fmt(Math.abs(F),1) + " " + senseOf(F), 58);
+                         Math.abs(F) < 1e-4 ? "" : fmt(Math.abs(F),1) + " " + senseOf(F), cap);
   }
   return s;
 }
@@ -1806,7 +1965,8 @@ function cutSVG(sol){
   }
   s += seg({x:X, y:y0}, {x:X, y:y1},
            "stroke:var(--cut);stroke-width:2px;stroke-dasharray:9 6;fill:none");
-  s += txt(X, y0 - 7, "cut at x = " + fmt(cx,2), "clab", "fill:var(--cut)");
+  s += txtFree([{x:X, y:y0 - 7}, {x:X, y:y0 - 21}, {x:X, y:y1 + 16}],
+               "cut at x = " + fmt(cx,2), "clab", "fill:var(--cut)");
   return s;
 }
 function activeItem(info){
@@ -1849,7 +2009,11 @@ function legendSVG(sol){
     s += seg({x:x,y:y},{x:x+w,y:y}, "stroke:var(--faint);stroke-width:3px;fill:none;stroke-linecap:round");
     s += seg({x:x,y:y-4},{x:x,y:y+4}, "stroke:var(--faint);stroke-width:1.2px;fill:none");
     s += seg({x:x+w,y:y-4},{x:x+w,y:y+4}, "stroke:var(--faint);stroke-width:1.2px;fill:none");
-    s += txt(x + w/2, y - 8, stepText(Fl) + " " + U().F, "clab", "fill:var(--faint)");
+    var cap = stepText(Fl) + " " + U().F, cw = textW(cap, "clab");
+    s += txtFree([{x:x + w/2, y:y - 8}, {x:x + w + 8 + cw/2, y:y + 4},
+                  {x:x + w/2, y:y - 20}, {x:x + w/2, y:y + 15},
+                  {x:x + w + 8 + cw/2, y:y - 8}, {x:x + w + 8 + cw/2, y:y + 16}],
+                 cap, "clab", "fill:var(--faint)");
   }
   return s;
 }
@@ -1871,20 +2035,36 @@ function drawStage(){
   fitForceScale(sol);
   fitScale(fitPoints(sol));
   var info = isJoints() ? null : sectionInfo(sol);
-  var s = gridSVG();
-  if(!isJoints()) s += cutSVG(sol);
+  /* Labels are laid out in order of how badly they need their spot, which is not the
+     order they are painted in: fixed furniture first, then the answers, then the
+     labels that have somewhere else to go. */
+  resetLabels();
+  var sGrid   = gridSVG();
+  var sDims   = state.showDims ? dimsSVG(sol) : "";
+  var sCut    = !isJoints() ? cutSVG(sol) : "";
+  var sLoads  = loadsSVG(sol);
+  var sReact  = state.showReactions ? reactionsSVG(sol) : "";
+  var sLegend = legendSVG(sol);
+  var sFBD    = (isJoints() && state.showFBD) ? jointFBDSVG(sol) : "";
+  var sSec    = (!isJoints() && info) ? sectionSVG(sol, info) : "";
+  var sZero   = state.showZero ? zeroSVG(sol) : "";
+  var sNodes  = nodesSVG(sol);
+  var sMem    = state.showForces ? memberLabelsSVG(sol) : "";
+
+  var s = sGrid;
+  if(!isJoints()) s += sCut;
   s += membersSVG(sol);
   s += supportSVG(T.pin, "pin");
   s += supportSVG(T.roller, "roller");
-  if(state.showZero) s += zeroSVG(sol);
-  s += nodesSVG(sol);
-  if(state.showDims) s += dimsSVG(sol);
-  s += loadsSVG(sol);
-  if(state.showReactions) s += reactionsSVG(sol);
-  if(isJoints() && state.showFBD) s += jointFBDSVG(sol);
-  if(!isJoints() && info) s += sectionSVG(sol, info);
-  if(state.showForces) s += memberLabelsSVG(sol);
-  s += legendSVG(sol);
+  s += sZero;
+  s += sNodes;
+  s += sDims;
+  s += sLoads;
+  s += sReact;
+  s += sFBD;
+  s += sSec;
+  s += sMem;
+  s += sLegend;
 
   if(state.build && state.pick !== null && T.nodes[state.pick]){
     var pk = P2(T.nodes[state.pick]);
