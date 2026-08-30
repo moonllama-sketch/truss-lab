@@ -48,6 +48,13 @@ Three tabs, as in the other labs.
   king post, Pratt, Howe, Warren, pitched roof, and a randomiser. Span, depth and
   panel count are editable, and the depth box is the point of the whole lab: chord
   forces are a bending moment divided by the depth.
+- **Build** — a toggle that turns the stage into an editor for trusses of your own.
+  Three gestures do everything: click empty space to drop a joint, click two joints to
+  join or unjoin them, drag a joint to move it. Buttons place the pin, the roller and
+  the loads. The determinacy count runs live and counts down — *1 more member would
+  balance the count* — which turns `m + r = 2j` from a rule into something you can
+  feel. Trusses can be saved in the browser, or copied out as a one-line code that
+  pastes back exactly, so a truss can travel into a problem sheet and back.
 - **Walkthrough** — ten numbered steps from "every member is a two-force member" to
   "a truss is a beam turned inside out", each driving the sandbox and narrating it
   with live numbers from the truss actually on screen.
@@ -77,19 +84,29 @@ member force table.
   is what sections are for, and finishes by solving all `2j` joint equations at once.
 - Determinacy is checked as `m + r = 2j`, and the three failure modes are treated as
   real outcomes rather than as errors: indeterminate, mechanism, and coincident
-  supports.
+  supports. The builder makes the fourth case easy to hit on purpose: a count that
+  balances while the geometry still moves.
+- The king post carries its load on the **tie beam**, not the apex. An apex load
+  leaves the post — the member the truss is named after — carrying exactly nothing,
+  which is a poor advertisement for it. The walkthrough still puts the load on the
+  apex deliberately, to show the post going quiet and then waking up to carry the
+  whole 40 kN when the load moves down.
+- A truss with only two panels has no section that severs three members: every cut
+  fences off a single joint. The lab says so rather than telling you to keep dragging
+  for a cut that cannot exist.
 
 ## Verified, not eyeballed
 
 Before delivery the lab was driven headlessly over HTTP:
 
-- **155 generated practice problems re-solved independently.** A separate solver,
+- **215 generated practice problems re-solved independently.** A separate solver,
   written to the prose in the visible prompt and assembling all `2j` joint equations
   as one matrix, reconstructed each truss from the prompt text alone and fed its
-  answers back through the app's own Check button. 155/155 accepted, across all seven
+  answers back through the app's own Check button. 215/215 accepted, across all seven
   generators — which validates the generators, the prompts' completeness, the stored
   answers, the tolerance, and the marching solver against an independent method.
-- **~490 randomised states** across every preset, both methods, every overlay toggle,
+- **~970 randomised states** across every preset, both methods, every overlay toggle,
+  Build mode with random clicks and drags on the stage,
   extreme spans and depths, zero and enormous loads, and dragged-into-degeneracy
   geometry: no thrown errors and no `NaN`, `Infinity` or stray `undefined` in the
   emitted SVG, worked solution, checks or member table.
@@ -107,3 +124,13 @@ that stopped tracking the method once the walkthrough switched it; and a claim a
 truss depth that the numbers contradicted — it is the *verticals*, not the diagonals,
 that depth leaves untouched. Section results were also checked by hand against the
 joint results for a Pratt and a Warren.
+
+The builder was driven the same way, with synthesised pointer events rather than
+direct calls: joints dropped by clicking, members joined and unjoined by clicking
+pairs, a joint dragged, a pan that must **not** drop a joint, a support deletion that
+must be refused, save/open/delete, and four malformed truss codes that must be
+rejected rather than half-loaded. The resulting hand-built truss was then checked
+against an independent hand calculation. That pass found two design faults: the canvas
+re-fitted on every added joint, so the truss jumped out from under the cursor, and the
+action buttons targeted the picked joint, which clears on every join and left them
+dead exactly when you wanted them.

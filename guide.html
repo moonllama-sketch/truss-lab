@@ -679,7 +679,8 @@ ul.plain li::marker{color:var(--rule-2)}
     head. <span class="k">Pratt</span> and <span class="k">Howe</span> are the same bars with the interior
     diagonals leaning opposite ways &mdash; press one then the other and watch every diagonal change sign.
     <span class="k">Warren</span> drops the verticals for a single zig-zag. <span class="k">Roof</span>
-    pitches the top chord to an apex. <span class="k">Random</span> shuffles the lot.</p>
+    pitches the top chord to an apex. <span class="k">Custom</span> hands you whatever is on screen to edit by
+    hand, and <span class="k">Random</span> shuffles the lot.</p>
     <p>Pratt, Howe and Roof need an <strong>even</strong> number of panels &mdash; with an odd count the
     middle bay would take two diagonals and the truss would stop being determinate. The lab rounds you up
     to the next even number rather than building something broken.</p>
@@ -689,6 +690,58 @@ ul.plain li::marker{color:var(--rule-2)}
     labels change &mdash; the arithmetic is identical. Load and reaction arrows are drawn to their own
     force scale, shown by the bar at the foot of the diagram; a 50 kN arrow is not &ldquo;50 metres
     long&rdquo;. Distances come off the ruler along the top and the dimension bars.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="tag">Building<br>your own</span></div>
+  <div class="body">
+    <h2>Draw a truss and watch it decide</h2>
+    <p>Press <span class="k">Build</span> above the diagram and the stage becomes an editor. There are only three
+    gestures, and they compose into everything:</p>
+
+    <ul class="plain">
+      <li><strong>Click empty space</strong> &mdash; drops a joint there. If a joint is already picked up, the new
+      one arrives already joined to it, so you can run a chain of members out in one series of clicks.</li>
+      <li><strong>Click a joint, then a second joint</strong> &mdash; joins them if they are not joined, and
+      <em>unjoins</em> them if they are. The same gesture builds and demolishes.</li>
+      <li><strong>Drag a joint</strong> &mdash; moves it, exactly as in the presets. A press that does not travel is
+      a click; one that travels is a drag.</li>
+    </ul>
+
+    <p>The buttons in the <span class="k">Build</span> card act on the joint you last clicked: put the
+    <strong>pin</strong> or the <strong>roller</strong> on it, hang a <strong>load</strong> from it, or
+    <strong>delete</strong> it along with every member meeting it. A joint carrying a support will not delete until
+    you have moved that support somewhere else &mdash; the truss is never allowed to lose a reaction by accident.</p>
+
+    <div class="callout">
+      <h3>The count is live, and it counts down</h3>
+      <p>As you work, the card keeps a running verdict: <span class="mono">m + r = 15 against 2j = 16 &mdash; 1 more
+      member would balance the count</span>. Add that member and it flips to <em>determinate</em>. Add one more and
+      it tells you the truss is now indeterminate and statics alone can no longer finish it.</p>
+      <p>This is the counting rule from the top of this guide, turned into something you can feel. Build a
+      rectangle of four bars and it will tell you it is short; put in a diagonal and it settles. That is why trusses
+      are made of triangles, demonstrated rather than asserted.</p>
+    </div>
+
+    <div class="warnbox">
+      <p><strong>Watch for the verdict that says the count balances but the geometry does not.</strong> Put three
+      members in a straight line through one joint, or stack the two supports at the same station, and the counting
+      rule still reads <span class="mono">m + r = 2j</span> while the frame quietly becomes a mechanism. The lab
+      says so in as many words.</p>
+      <p>That case is worth building on purpose. It is the proof that counting members is <em>necessary but not
+      sufficient</em>, and it is much more convincing when you have just built it yourself than when a textbook
+      says so in a footnote.</p>
+    </div>
+
+    <h3>Keeping and sharing what you build</h3>
+    <p>Give a truss a name and press <span class="k">save</span> and it is kept in this browser, ready to
+    <span class="k">open</span> again later. Saved trusses live only in the browser you saved them in &mdash; they
+    do not travel with the file.</p>
+    <p>To move one somewhere else, press <span class="k">copy code</span>. That puts the whole truss &mdash; joints,
+    members, supports and loads &mdash; on the clipboard as a single line of text you can paste into a problem
+    sheet, an email or a lab report. Paste one back into the box and press <span class="k">load code</span> to
+    rebuild it exactly. A code that has been mangled in transit is refused rather than half-loaded.</p>
   </div>
 </section>
 

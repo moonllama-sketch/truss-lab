@@ -337,9 +337,29 @@ kbd{
   font:inherit;font-size:12px;color:var(--muted);cursor:pointer;
   background:var(--surface-2);border:1px solid var(--rule);border-radius:7px;padding:4px 9px;
 }
-.mini:hover{color:var(--ink);border-color:var(--rule-2)}
+.mini:hover:not(:disabled){color:var(--ink);border-color:var(--rule-2)}
+.mini:disabled{opacity:.38;cursor:default}
 .mini.tight{padding:4px 7px;font-family:var(--mono);font-size:11.5px}
 .mini.on{color:var(--accent);border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+
+/* ---------- build ---------- */
+.buildbar{
+  padding:10px 13px;font-size:12.5px;line-height:1.5;color:var(--ink-2);
+  border-bottom:1px solid var(--rule);background:var(--surface-2);
+}
+.buildbar b{color:var(--ink)}
+.trow .pill{
+  font-family:var(--mono);font-size:12px;color:var(--ink);
+  background:var(--accent-soft);border-radius:6px;padding:3px 8px;min-width:38px;text-align:center;
+}
+.trow .pill.none{color:var(--faint);background:var(--surface-2)}
+.trow input.wide{width:118px;text-align:left;font-size:12px}
+.trow select.saved{
+  font-family:var(--mono);font-size:12px;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--rule);border-radius:7px;padding:5px 6px;
+  max-width:130px;cursor:pointer;
+}
+.trow select.saved:focus{outline:none;border-color:var(--accent)}
 
 /* ---------- member force table ---------- */
 .mems{
@@ -588,6 +608,9 @@ kbd{
           <button type="button" data-mode="joints" class="on" title="Method of joints: two equations at every joint">Joints</button>
           <button type="button" data-mode="sections" title="Method of sections: cut the truss and take moments">Sections</button>
         </div>
+        <div class="seg" id="buildSeg" role="group" aria-label="Build mode">
+          <button type="button" id="buildBtn" title="Add and remove joints and members by hand">Build</button>
+        </div>
         <div class="chips" id="chips"></div>
         <div class="seg small" id="snapSeg" role="group" aria-label="Snap">
           <span class="seg-label">Snap</span>
@@ -657,6 +680,42 @@ kbd{
         <span class="k" id="cutInfo"></span>
       </div>
       <div class="preset-row" id="presets"></div>
+    </section>
+
+    <section class="card" id="card-build" hidden>
+      <div class="card-head">
+        <h2>Build</h2>
+        <span class="hint" id="buildCount"></span>
+      </div>
+      <p class="buildbar" id="buildBar"></p>
+      <div class="trow">
+        <span class="k">Last joint</span>
+        <span class="pill none" id="selJoint">none</span>
+        <button type="button" class="mini tight" data-build="pin">pin here</button>
+        <button type="button" class="mini tight" data-build="roller">roller here</button>
+        <button type="button" class="mini tight" data-build="load">load here</button>
+        <button type="button" class="mini tight" data-build="deljoint">delete</button>
+      </div>
+      <div class="trow">
+        <span class="k">Member</span>
+        <span class="pill none" id="selMem">none</span>
+        <button type="button" class="mini tight" data-build="delmem">delete</button>
+        <button type="button" class="mini tight" data-build="clear">start from scratch</button>
+      </div>
+      <div class="trow">
+        <span class="k">Saved</span>
+        <input id="saveName" class="wide" type="text" autocomplete="off" placeholder="name it" aria-label="Name for this truss">
+        <button type="button" class="mini tight" data-build="save">save</button>
+        <select id="savedList" class="saved" aria-label="Saved trusses"></select>
+        <button type="button" class="mini tight" data-build="open">open</button>
+        <button type="button" class="mini tight" data-build="delsave">delete</button>
+      </div>
+      <div class="trow last">
+        <span class="k">Share</span>
+        <button type="button" class="mini tight" data-build="copy">copy code</button>
+        <input id="codeIn" class="wide" type="text" autocomplete="off" placeholder="paste a code" aria-label="Truss code">
+        <button type="button" class="mini tight" data-build="paste">load code</button>
+      </div>
     </section>
 
     <section class="card" id="card-loads">
@@ -780,11 +839,20 @@ var KINDS = {
   pratt:  {t:"Pratt",     param:true, even:true},
   howe:   {t:"Howe",      param:true, even:true},
   warren: {t:"Warren",    param:true, even:false},
-  roof:   {t:"Roof",      param:true, even:true}
+  roof:   {t:"Roof",      param:true, even:true},
+  custom: {t:"Custom",    param:false, hand:true}
 };
 
 function buildTruss(kind, n, S, H){
   var nodes = [], mem = [], i, p, T = {kind:kind, n:n, S:S, H:H};
+  if(kind === "custom"){
+    /* a hand-built truss has no parametric form; this is only the seed a fresh one starts from */
+    T.nodes = [ nd("J1",0,0), nd("J2",S,0) ];
+    T.members = [[0,1]];
+    T.pin = 0; T.roller = 1;
+    T.loads = [];
+    return T;
+  }
   var Ui = function(k){ return (n+1) + (k-1); };   /* index of top node U<k> */
 
   if(kind === "tri"){
@@ -796,7 +864,9 @@ function buildTruss(kind, n, S, H){
     nodes = [ nd("L0",0,0), nd("L1",S/2,0), nd("L2",S,0), nd("U1",S/2,H) ];
     mem = [[0,1],[1,2],[0,3],[3,2],[1,3]];
     T.pin = 0; T.roller = 2;
-    T.loads = [ {n:3, v:{x:0, y:-40}} ];
+    /* the load goes on the tie beam, not the apex: the post exists to hang L1 from U1,
+       and an apex load leaves it carrying nothing at all */
+    T.loads = [ {n:1, v:{x:0, y:-40}} ];
   } else if(kind === "warren"){
     p = S/n;
     for(i=0;i<=n;i++) nodes.push(nd("L"+i, i*p, 0));
@@ -1076,6 +1146,12 @@ function senseWord(F){
 
 function solveTruss(T){
   var j = T.nodes.length, m = T.members.length;
+  if(!j || !T.nodes[T.pin] || !T.nodes[T.roller]){
+    return { T:T, m:m, j:j, r:3, need:2*j, have:m+3, count:false, ok:false, F:[], order:[],
+             stalled:false, reason:"unstable", zeros:[],
+             R:{ ok:false, Ax:0, Ay:NaN, By:NaN, Fx:0, Fy:0, Mo:0, MA:0, span:0,
+                 xA:0, yA:0, xB:0, yB:0 } };
+  }
   var out = {
     T:T, m:m, j:j, r:3, need:2*j, have:m+3,
     count:(m + 3 === 2*j), ok:false, F:[], order:[], stalled:false, reason:"", zeros:[]
@@ -1246,6 +1322,9 @@ var state = {
   showBody:true,
   showCentre:true,
   locked:false,
+  build:false,
+  pick:null,
+  hoverW:null,
   step:0,
   practice:null,
   score:{right:0, total:0}
@@ -1355,9 +1434,9 @@ function fitScale(pts){
     loy = Math.min(loy, p.y); hiy = Math.max(hiy, p.y);
   }
   if(!isFinite(lox)){ lox = 0; hix = 1; loy = 0; hiy = 1; }
+  if(manualView) return;
   ctr.x = (lox + hix)/2;
   ctr.y = (loy + hiy)/2;
-  if(manualView) return;
   var mx = Math.max(0.6, (hix - lox)/2), my = Math.max(0.4, (hiy - loy)/2);
   var avail = Math.min((VB.w/2 - 52)/mx, (VB.h/2 - 46)/my);
   var next = LADDER[LADDER.length-1], k;
@@ -1801,9 +1880,18 @@ function drawStage(){
   if(state.showForces) s += memberLabelsSVG(sol);
   s += legendSVG(sol);
 
+  if(state.build && state.pick !== null && T.nodes[state.pick]){
+    var pk = P2(T.nodes[state.pick]);
+    if(state.hoverW){
+      s += seg(pk, P2(state.hoverW),
+               "stroke:var(--accent);stroke-width:2px;stroke-dasharray:6 5;opacity:.8;fill:none");
+    }
+    s += '<circle cx="'+n(pk.x)+'" cy="'+n(pk.y)+'" r="15" style="fill:none;stroke:var(--accent);stroke-width:2.2px"/>';
+  }
   if(!state.locked){
     for(i=0;i<T.nodes.length;i++){
-      s += handleSVG("n"+i, P2(T.nodes[i]), "var(--sup)", isJoints() && state.focus === i);
+      s += handleSVG("n"+i, P2(T.nodes[i]), state.build ? "var(--accent)" : "var(--sup)",
+                     (isJoints() && state.focus === i) || state.pick === i);
     }
     for(i=0;i<T.loads.length;i++){
       if(!T.nodes[T.loads[i].n]) continue;
@@ -1816,6 +1904,7 @@ function drawStage(){
     }
   }
   stage.innerHTML = s;
+  if(state.build && !manualView) manualView = true;   /* hold the canvas still while building */
   return sol;
 }
 
@@ -2095,9 +2184,19 @@ function sectionsStepsHTML(sol){
     +  'cross at most three members whose force you do not already know. Cut four and the section alone cannot '
     +  'finish &mdash; slide the cut into a panel where only a chord, a diagonal and a chord are severed.</p>';
   if(cm.length !== 3){
-    h += '<p class="note"><b>This cut crosses ' + cm.length + ' member' + (cm.length === 1 ? "" : "s") + '.</b> '
-      +  'Drag the red line, or use the panel arrows in the Truss card, until exactly three are cut.</p></div></li></ol>';
-    return h;
+    if(validCuts(T).length){
+      h += '<p class="note"><b>This cut crosses ' + cm.length + ' member' + (cm.length === 1 ? "" : "s") + '.</b> '
+        +  'Drag the red line, or use the panel arrows in the Truss card, until exactly three are cut.</p>';
+    } else {
+      h += '<p class="note"><b>No cut anywhere in this truss severs three members.</b> Every line you can draw '
+        +  'through it crosses just two, which fences off a single joint &mdash; and a free body with one joint on '
+        +  'it is the <i>method of joints</i>, not the method of sections. There is nothing here for a section to '
+        +  'do that a joint would not do faster.</p>'
+        +  '<p class="note">A truss earns the method of sections by having a <b>web</b>: enough depth and enough '
+        +  'panels that one line takes a chord, a diagonal and a chord together. Press <b>Pratt</b>, <b>Howe</b> or '
+        +  '<b>Warren</b> and the cut has something to bite on.</p>';
+    }
+    return h + '</div></li></ol>';
   }
   h += '</div></li>';
 
@@ -2273,7 +2372,7 @@ var CHIPS = {
 };
 var PRESETS = [ {k:"tri", t:"Triangle"}, {k:"king", t:"King post"}, {k:"pratt", t:"Pratt"},
                 {k:"howe", t:"Howe"}, {k:"warren", t:"Warren"}, {k:"roof", t:"Roof"},
-                {k:"rand", t:"Random"} ];
+                {k:"custom", t:"Custom"}, {k:"rand", t:"Random"} ];
 
 function renderChips(){
   var l = CHIPS[state.method], h = "", i;
@@ -2385,7 +2484,10 @@ function renderMembers(sol){
   if(sol.ok) for(i=0;i<T.members.length;i++) if(Math.abs(sol.F[i]) < 1e-4) zc++;
   $("#memHint").textContent = sol.ok
     ? (T.members.length + " members · " + zc + " zero · " + U().F)
-    : (T.members.length + " members");
+    : (T.members.length + (T.members.length === 1 ? " member" : " members"));
+  if(!T.members.length) $("#mems").innerHTML =
+    '<p style="grid-column:1/-1;font-size:12.5px;color:var(--muted);padding:4px 2px">'
+    + 'No members yet. Click two joints in Build mode to join them.</p>';
 }
 
 function setInput(id, v){
@@ -2417,8 +2519,11 @@ function renderNumbers(sol){
   $("#detHint").textContent = !sol.count
     ? (sol.have > sol.need ? "indeterminate" : "unstable")
     : (!sol.ok ? "mechanism" : (sol.stalled ? "needs a section" : "determinate"));
-  var cm = cutMembers(T, state.cut);
-  $("#cutInfo").textContent = cm.length + (cm.length === 1 ? " member cut" : " members cut");
+  var cm = cutMembers(T, state.cut), vc = validCuts(T), pb;
+  $("#cutInfo").textContent = cm.length + (cm.length === 1 ? " member cut" : " members cut")
+    + (vc.length ? "" : " · no 3-member section exists");
+  pb = document.querySelectorAll("#cutRow [data-cutset]");
+  for(i=0;i<pb.length;i++) pb[i].disabled = !vc.length;
 }
 function renderMath(){
   $("#steps").innerHTML = stepsHTML();
@@ -2465,7 +2570,10 @@ function renderControls(){
   $("#countN").textContent = nLoads();
   $("#unitBtn").textContent = U().lab;
   $("#lenUnit").textContent = U().L;
-  $("#Nin").disabled = !KINDS[state.kind].param;
+  var hand = !!(KINDS[state.kind] && KINDS[state.kind].hand);
+  $("#Nin").disabled = !KINDS[state.kind].param || hand;
+  $("#Sin").disabled = hand;
+  $("#Hin").disabled = hand;
   setHint();
   $("#printMeta").textContent = (isJoints() ? "Method of joints" : "Method of sections")
     + " · " + U().F + " and " + U().L + " · tension positive";
@@ -2488,6 +2596,7 @@ function render(){
   var sol = drawStage();
   renderNumbers(sol);
   renderMembers(sol);
+  renderBuild(sol);
   renderControls();
   if(state.tab !== "practice") renderMath();
   return sol;
@@ -2514,6 +2623,7 @@ function defaultCut(T){
 }
 function rebuild(keepLoads){
   var old = TR(), T;
+  if(KINDS[state.kind] && KINDS[state.kind].hand) return;   /* nothing parametric to rebuild */
   if(KINDS[state.kind].param){
     var lo = KINDS[state.kind].even ? 4 : 2;
     state.n = Math.round(clampNum(state.n, lo, 8));
@@ -2544,6 +2654,14 @@ function setPreset(kind){
     state.H = [2,2.5,3,4][rndInt(0,3)];
     rebuild(false);
     randomiseLoads();
+    return;
+  }
+  if(kind === "custom"){
+    /* keep whatever is on screen and make it editable, rather than starting from nothing */
+    state.kind = "custom";
+    state.truss.kind = "custom";
+    state.pick = null;
+    setBuild(true);
     return;
   }
   if(!KINDS[kind]) kind = "pratt";
@@ -2587,9 +2705,259 @@ function clampTruss(){
     T.nodes[i].y = clampNum(tidy(T.nodes[i].y), -1.0*S, 1.0*S);
   }
   state.cut = clampNum(tidy(state.cut), -0.7*S, 1.7*S);
+  T.pin = clampNum(T.pin|0, 0, T.nodes.length-1);
+  T.roller = clampNum(T.roller|0, 0, T.nodes.length-1);
+  if(state.pick !== null && !T.nodes[state.pick]) state.pick = null;
   state.focus = clampNum(state.focus, 0, T.nodes.length-1);
   state.sel = clampNum(state.sel, 0, T.members.length-1);
   for(i=0;i<T.loads.length;i++) T.loads[i].n = clampNum(T.loads[i].n, 0, T.nodes.length-1);
+}
+
+/* ============================ the truss builder ============================ */
+/* Editing topology by hand is what turns any preset into a "custom" truss: the
+   parametric span / depth / panel boxes stop meaning anything the moment you do. */
+function markCustom(){
+  if(state.kind !== "custom"){
+    state.kind = "custom";
+    state.truss.kind = "custom";
+    renderPresets();
+  }
+}
+function nextJointName(T){
+  var used = {}, i, n = 1;
+  for(i=0;i<T.nodes.length;i++) used[T.nodes[i].name] = true;
+  while(used["J" + n]) n++;
+  return "J" + n;
+}
+function memberBetween(T, a, b){
+  var i, m;
+  for(i=0;i<T.members.length;i++){
+    m = T.members[i];
+    if((m[0] === a && m[1] === b) || (m[0] === b && m[1] === a)) return i;
+  }
+  return -1;
+}
+function countLine(){
+  var sol = solveTruss(TR());
+  return "m + r = " + sol.have + ", 2j = " + sol.need + " \u2014 "
+       + (!sol.count ? (sol.have > sol.need ? "indeterminate" : "a mechanism")
+                     : (sol.ok ? "determinate" : "geometrically unstable"));
+}
+function toggleMember(a, b){
+  var T = TR(), i;
+  if(a === b) return;
+  i = memberBetween(T, a, b);
+  if(i >= 0){
+    T.members.splice(i, 1);
+    if(state.sel >= T.members.length) state.sel = Math.max(0, T.members.length - 1);
+    markCustom();
+    memKey = "";
+    toast("Removed the member. " + countLine());
+  } else {
+    T.members.push([a, b]);
+    state.sel = T.members.length - 1;
+    markCustom();
+    memKey = "";
+    toast("Added " + memName(T, state.sel) + ". " + countLine());
+  }
+}
+function addJoint(w){
+  var T = TR(), k;
+  if(T.nodes.length >= 40){ toast("Forty joints is as far as this goes."); return; }
+  T.nodes.push(nd(nextJointName(T), tidy(snapPos(w.x)), tidy(snapPos(w.y))));
+  k = T.nodes.length - 1;
+  if(state.pick !== null && T.nodes[state.pick]) T.members.push([state.pick, k]);
+  state.pick = k;                       /* so the next click keeps the chain going */
+  state.focus = k;
+  markCustom();
+  tableKey = ""; memKey = "";
+}
+function deleteJoint(k){
+  var T = TR(), i;
+  if(!T.nodes[k]) return;
+  if(T.nodes.length <= 2){ toast("A truss needs at least two joints."); return; }
+  if(k === T.pin || k === T.roller){
+    toast(nodeName(T,k) + " carries a support. Put the " + (k === T.pin ? "pin" : "roller")
+        + " on another joint first.");
+    return;
+  }
+  T.members = T.members.filter(function(m){ return m[0] !== k && m[1] !== k; });
+  for(i=0;i<T.members.length;i++){
+    if(T.members[i][0] > k) T.members[i][0]--;
+    if(T.members[i][1] > k) T.members[i][1]--;
+  }
+  T.loads = T.loads.filter(function(l){ return l.n !== k; });
+  for(i=0;i<T.loads.length;i++) if(T.loads[i].n > k) T.loads[i].n--;
+  if(T.pin > k) T.pin--;
+  if(T.roller > k) T.roller--;
+  T.nodes.splice(k, 1);
+  state.pick = null;
+  state.focus = clampNum(state.focus > k ? state.focus - 1 : state.focus, 0, T.nodes.length - 1);
+  state.sel = clampNum(state.sel, 0, Math.max(0, T.members.length - 1));
+  markCustom();
+  tableKey = ""; memKey = "";
+  toast("Deleted the joint and everything meeting it. " + countLine());
+}
+function setSupport(k, which){
+  var T = TR();
+  if(!T.nodes[k]) return;
+  if(which === "pin"){
+    if(T.roller === k) T.roller = T.pin;      /* swap rather than stack them */
+    T.pin = k;
+  } else {
+    if(T.pin === k) T.pin = T.roller;
+    T.roller = k;
+  }
+  markCustom();
+  toast("Pin at " + nodeName(T,T.pin) + ", roller at " + nodeName(T,T.roller) + ".");
+}
+function addLoadAt(k){
+  var T = TR(), i;
+  for(i=0;i<T.loads.length;i++){
+    if(T.loads[i].n === k){ toast(nodeName(T,k) + " already carries a load; edit it in the table."); return; }
+  }
+  if(T.loads.length >= LMAX){ toast("Four loads is the limit. Remove one first."); return; }
+  T.loads.push({ n:k, v:{x:0, y:-20} });
+  tableKey = "";
+  refitForce = true;
+  toast("Put a 20 " + U().F + " downward load on " + nodeName(T,k) + ".");
+}
+function clearTruss(){
+  var T = TR(), S = Math.max(4, Math.round(spanOf(T)) || 8);
+  state.truss = buildTruss("custom", state.n, S, state.H);
+  state.kind = "custom";
+  state.pick = null; state.focus = 0; state.sel = 0;
+  tableKey = ""; memKey = "";
+  refitForce = true;
+  resetView();
+  renderPresets();
+  toast("Cleared. Click the stage to drop joints, then click two joints to join them.");
+}
+
+/* ---- a truss as one line of text, so one can be pasted into a problem sheet ---- */
+function encodeTruss(T){
+  var i, o = { v:1, n:[], m:[], p:T.pin, r:T.roller, l:[] };
+  for(i=0;i<T.nodes.length;i++) o.n.push([T.nodes[i].name, r2(T.nodes[i].x), r2(T.nodes[i].y)]);
+  for(i=0;i<T.members.length;i++) o.m.push([T.members[i][0], T.members[i][1]]);
+  for(i=0;i<T.loads.length;i++) o.l.push([T.loads[i].n, r2(T.loads[i].v.x), r2(T.loads[i].v.y)]);
+  return JSON.stringify(o);
+}
+function num(v){ return typeof v === "number" && isFinite(v); }
+function decodeTruss(txt){
+  var o, i, a, T, j;
+  try { o = JSON.parse(String(txt)); } catch(err){ return null; }
+  if(!o || typeof o !== "object" || !o.n || !o.n.length) return null;
+  if(o.n.length < 2 || o.n.length > 60) return null;
+  if(!o.m || typeof o.m.length !== "number") return null;
+  T = { kind:"custom", n:state.n, S:state.S, H:state.H, nodes:[], members:[], loads:[] };
+  for(i=0;i<o.n.length;i++){
+    a = o.n[i];
+    if(!a || !num(a[1]) || !num(a[2])) return null;
+    T.nodes.push(nd(String(a[0] == null ? "J" + (i+1) : a[0]).slice(0,6), a[1], a[2]));
+  }
+  j = T.nodes.length;
+  for(i=0;i<o.m.length;i++){
+    a = o.m[i];
+    if(!a || !num(a[0]) || !num(a[1])) return null;
+    if(a[0] < 0 || a[1] < 0 || a[0] >= j || a[1] >= j || a[0] === a[1]) return null;
+    if(memberBetween(T, a[0]|0, a[1]|0) >= 0) continue;
+    T.members.push([a[0]|0, a[1]|0]);
+  }
+  if(!num(o.p) || !num(o.r) || o.p < 0 || o.r < 0 || o.p >= j || o.r >= j) return null;
+  T.pin = o.p|0; T.roller = o.r|0;
+  if(o.l && o.l.length){
+    for(i=0;i<o.l.length && T.loads.length < LMAX;i++){
+      a = o.l[i];
+      if(!a || !num(a[0]) || !num(a[1]) || !num(a[2])) return null;
+      if(a[0] < 0 || a[0] >= j) return null;
+      T.loads.push({ n:a[0]|0, v:{x:a[1], y:a[2]} });
+    }
+  }
+  return T;
+}
+function adoptTruss(T){
+  state.truss = T;
+  state.kind = "custom";
+  state.pick = null;
+  state.focus = clampNum(T.pin, 0, T.nodes.length-1);
+  state.sel = 0;
+  tableKey = ""; memKey = "";
+  refitForce = true;
+  clampTruss();
+  resetView();
+  renderPresets();
+}
+
+/* ---- saved trusses live in this browser, one entry per name ---- */
+var SAVE_KEY = "tal-trusses";
+function readSaves(){
+  var raw, o;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch(err){ return {}; }
+  if(!raw) return {};
+  try { o = JSON.parse(raw); } catch(err){ return {}; }
+  return (o && typeof o === "object") ? o : {};
+}
+function writeSaves(o){
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(o)); return true; }
+  catch(err){ return false; }
+}
+function renderSaves(){
+  var o = readSaves(), k, h = "", names = [], i, el;
+  for(k in o) if(Object.prototype.hasOwnProperty.call(o,k)) names.push(k);
+  names.sort();
+  if(!names.length) h = '<option value="">nothing saved yet</option>';
+  else for(i=0;i<names.length;i++){
+    h += '<option value="' + names[i].replace(/"/g,"&quot;") + '">' + names[i] + '</option>';
+  }
+  el = $("#savedList");
+  if(el) el.innerHTML = h;
+}
+
+function setBuild(on){
+  state.build = !!on;
+  if(!state.build){ state.pick = null; }
+  state.hoverW = null;
+  $("#card-build").hidden = !(state.build && state.tab === "explore");
+  $("#buildBtn").classList.toggle("on", state.build);
+  setHint();
+  renderSaves();
+  render();
+}
+function renderBuild(sol){
+  if(!state.build) return;
+  var T = sol.T, i, w, btns;
+  var jp = $("#selJoint"), mp = $("#selMem");
+  var hasJ = !!T.nodes[state.focus];
+  var hasM = T.members.length > 0 && !!T.members[state.sel];
+  jp.textContent = hasJ ? nodeName(T, state.focus) : "none";
+  jp.className = "pill" + (hasJ ? "" : " none");
+  mp.textContent = hasM ? memName(T, state.sel) : "none";
+  mp.className = "pill" + (hasM ? "" : " none");
+  btns = document.querySelectorAll("#card-build [data-build]");
+  for(i=0;i<btns.length;i++){
+    w = btns[i].getAttribute("data-build");
+    if(w === "pin" || w === "roller" || w === "load" || w === "deljoint") btns[i].disabled = !hasJ;
+    if(w === "delmem") btns[i].disabled = !hasM;
+  }
+  var d = sol.need - sol.have, verdict;
+  if(!sol.count){
+    verdict = (d > 0)
+      ? d + " more member" + (d === 1 ? "" : "s") + " would balance the count"
+      : (-d) + " member" + (-d === -1 ? "" : "s") + " too many, so statics alone cannot finish it";
+  } else {
+    verdict = sol.ok
+      ? "determinate \u2014 every bar force follows from equilibrium alone"
+      : "the count balances but the geometry does not: somewhere it can still move";
+  }
+  $("#buildCount").textContent = T.nodes.length + " joints \u00b7 " + T.members.length + " members";
+  $("#buildBar").innerHTML = (state.pick === null)
+    ? "Click a joint to <b>pick it up</b>, then click a second joint to join or unjoin them. Click empty space "
+      + "to drop a new joint. Drag a joint to move it. The buttons below act on the joint you last clicked."
+    : "<b>" + nodeName(T, state.pick) + "</b> is picked up &mdash; click another joint to <b>join or unjoin</b>, "
+      + "click empty space to run a member out to a new joint, or click " + nodeName(T, state.pick)
+      + " again to put it down. <kbd>Esc</kbd> also puts it down.";
+  $("#buildBar").innerHTML += '<br><span class="mono" style="font-size:12px;color:var(--muted)">m + r = '
+    + sol.have + " against 2j = " + sol.need + '</span> &mdash; ' + verdict + ".";
 }
 
 /* ============================ walkthrough ============================ */
@@ -2685,18 +3053,38 @@ var STEPS = [
     }},
   { t:"Some members carry nothing at all",
     s:{method:"joints", showReactions:true, showForces:true, showFBD:false, showZero:true, showDims:false},
-    enter:function(){ setPreset("king"); },
+    enter:function(){
+      /* deliberately hang the load off the apex: that is what silences the post */
+      setPreset("king");
+      var T = TR(), i, top = 0;
+      for(i=0;i<T.nodes.length;i++) if(T.nodes[i].y > T.nodes[top].y) top = i;
+      if(T.loads.length) T.loads[0].n = top;
+      tableKey = "";
+    },
     b:function(){
-      var sol = solveTruss(TR());
-      var nm = sol.zeros.length ? memName(TR(), sol.zeros[0].zero[0]) : "the odd member";
+      var T = TR(), sol = solveTruss(T), i, post = -1;
+      var nm = sol.zeros.length ? memName(T, sol.zeros[0].zero[0]) : "the odd member";
+      if(sol.zeros.length) post = sol.zeros[0].zero[0];
+      /* the same truss with the load moved down onto the tie beam */
+      var T2 = buildTruss("king", state.n, state.S, state.H), sol2 = null;
+      if(T.loads.length && T2.loads.length) T2.loads[0].v = { x:T.loads[0].v.x, y:T.loads[0].v.y };
+      sol2 = solveTruss(T2);
+      var woke = (post >= 0 && sol2.ok) ? sol2.F[post] : null;
       return "Two rules spot zero-force members by inspection, before any algebra:<br><br>"
         + "<b>Two members, nothing else.</b> At an unloaded, unsupported joint where only two bars meet and they are "
         + "not in line, both are zero &mdash; resolve along one and the other has no component to cancel it.<br><br>"
         + "<b>Three members, two of them in line.</b> The odd one out is zero &mdash; resolve perpendicular to the "
-        + "pair and it stands alone. That is <span class=\"mono\">" + nm + "</span> here.<br><br>"
-        + "Now move the load onto the joint below and watch it wake up. Zero-force means zero <i>for this load "
-        + "case</i>: the member is still there to brace its neighbours against buckling and to carry the next load "
-        + "case. Never rub one out of the drawing.";
+        + "pair and it stands alone. That is <span class=\"mono\">" + nm + "</span> here: the king post itself, "
+        + "carrying nothing, because the load is perched on the apex and there is nothing slung below it.<br><br>"
+        + "Now drag that load down onto <b>L1</b>, the middle of the tie beam"
+        + (woke === null ? ""
+            : ", and the post goes from <span class=\"mono\">0</span> to <span class=\"mono\">"
+              + fmt(Math.abs(woke),2) + " " + U().F + " " + senseWord(woke) + "</span> &mdash; it is now the member "
+              + "holding the whole load up, which is the entire reason a king post truss has one")
+        + ".<br><br>"
+        + "That is what the rule means: zero <i>for this load case</i>, and nothing more. The bar is still there to "
+        + "brace its neighbours against buckling, to carry the next load case, and often to stop the truss being a "
+        + "mechanism at all. Never rub one out of the drawing.";
     }},
   { t:"One cut, one member",
     s:{method:"sections", showReactions:true, showForces:true, showBody:true, showCentre:false, showZero:false, showDims:false},
@@ -2961,7 +3349,7 @@ function buildProblem(){
   } else if(type === "zero"){
     guard = 0;
     do {
-      T = makeTruss(["pratt","howe","roof","king"]);
+      T = makeTruss(["pratt","howe","roof"]);
       sol = solveTruss(T);
     } while((!sol.ok || !sol.zeros.length) && ++guard < 300);
     var zc = 0;
@@ -3361,7 +3749,7 @@ function revealSolution(quiet){
 function sync(){ render(); refreshStepBody(); }
 function snapPos(v){ return state.snap > 0 ? Math.round(v/state.snap)*state.snap : v; }
 
-var drag = null, dragSign = null;
+var drag = null, dragSign = null, dragMoved = false, press = null;
 
 function svgPoint(e){
   var r = stage.getBoundingClientRect();
@@ -3416,6 +3804,16 @@ function moveTo(e){
   applyHandle(drag, toWorld(sp.x, sp.y), !!e.shiftKey);
   sync();
 }
+/* in Build mode a press that does not travel is a click, not a drag */
+function farEnough(a, b){ return Math.hypot(a.x - b.x, a.y - b.y) > 4; }
+function buildClickJoint(k){
+  var T = TR();
+  if(!T.nodes[k]) return;
+  if(state.pick === null){ state.pick = k; }
+  else if(state.pick === k){ state.pick = null; }
+  else { toggleMember(state.pick, k); state.pick = null; }
+  state.focus = k;
+}
 function zoomAt(factor, p){
   var before = toWorld(p.x, p.y);
   var next = clampNum(scale * factor, 2, 900);
@@ -3463,9 +3861,12 @@ stage.addEventListener("pointerdown", function(e){
     ptrs[e.pointerId] = svgPoint(e);
     if(pointerIds().length >= 2){ e.preventDefault(); startPinch(); return; }
   }
+  var sp0 = svgPoint(e);
   var g = (!state.locked && e.target.closest) ? e.target.closest("[data-handle]") : null;
   if(g && e.button !== 1){
     drag = g.getAttribute("data-handle");
+    dragMoved = false;
+    press = { sp:sp0, handle:drag };
     dragSign = null;
     if(drag.charAt(0) === "l"){
       var li = parseInt(drag.slice(1), 10);
@@ -3474,18 +3875,19 @@ stage.addEventListener("pointerdown", function(e){
     try { stage.setPointerCapture(e.pointerId); } catch(err) {}
     e.preventDefault();
     stage.focus();
-    moveTo(e);
+    if(!state.build) moveTo(e);      /* in Build a press is a click until it travels */
     return;
   }
   if(e.button === 0 && !state.locked){
-    var hitM = pickMember(svgPoint(e));
-    if(hitM >= 0){
+    var hitM = pickMember(sp0);
+    if(hitM >= 0 && !state.build){
       state.sel = hitM;
       e.preventDefault();
       stage.focus();
       sync();
       return;
     }
+    if(state.build) press = { sp:sp0, handle:null, mem:hitM };
   }
   if(e.button === 0 || e.button === 1){
     pan = {cx:e.clientX, cy:e.clientY, ox:view.ox, oy:view.oy};
@@ -3497,6 +3899,7 @@ stage.addEventListener("pointerdown", function(e){
 });
 stage.addEventListener("pointermove", function(e){
   if(e.pointerType === "touch" && ptrs[e.pointerId]) ptrs[e.pointerId] = svgPoint(e);
+  if(press && !dragMoved && farEnough(svgPoint(e), press.sp)) dragMoved = true;
   if(pinch){
     var ids = pointerIds();
     if(ids.length < 2) return;
@@ -3510,7 +3913,16 @@ stage.addEventListener("pointermove", function(e){
     sync();
     return;
   }
-  if(drag){ moveTo(e); return; }
+  if(drag){
+    if(dragMoved || !state.build) moveTo(e);
+    return;
+  }
+  if(!pan && state.build && state.pick !== null){
+    var hw = svgPoint(e);
+    state.hoverW = toWorld(hw.x, hw.y);
+    render();
+    return;
+  }
   if(pan){
     var r = stage.getBoundingClientRect();
     if(!r.width || !r.height) return;
@@ -3524,7 +3936,20 @@ function endDrag(e){
   if(e && e.pointerId != null) delete ptrs[e.pointerId];
   else ptrs = {};
   if(pinch && pointerIds().length < 2) pinch = null;
+  var acted = false;
+  if(state.build && press && !dragMoved && !state.locked){
+    if(press.handle && press.handle.charAt(0) === "n"){
+      buildClickJoint(parseInt(press.handle.slice(1), 10));
+      acted = true;
+    } else if(!press.handle){
+      if(press.mem >= 0){ state.sel = press.mem; state.pick = null; }
+      else if(e && e.clientX != null) addJoint(toWorld(svgPoint(e).x, svgPoint(e).y));
+      acted = true;
+    }
+  }
+  press = null; dragMoved = false;
   if(drag){ drag = null; dragSign = null; clampTruss(); sync(); }
+  else if(acted){ clampTruss(); sync(); }
   if(pan){ pan = null; stage.classList.remove("panning"); }
 }
 stage.addEventListener("pointerup", endDrag);
@@ -3547,6 +3972,18 @@ $("#zoomSeg").addEventListener("click", function(e){
 function selHandle(){ return isJoints() ? ("n" + state.focus) : "X"; }
 stage.addEventListener("keydown", function(e){
   var k = e.key, d = null;
+  if(k === "Escape" && state.build){ e.preventDefault(); state.pick = null; state.hoverW = null; sync(); return; }
+  if((k === "Delete" || k === "Backspace") && state.build && !state.locked){
+    e.preventDefault();
+    if(state.pick !== null) deleteJoint(state.pick);
+    else if(state.build && TR().nodes[state.focus] && e.shiftKey) deleteJoint(state.focus);
+    else if(TR().members[state.sel]){
+      var mm = TR().members[state.sel];
+      toggleMember(mm[0], mm[1]);
+    }
+    sync();
+    return;
+  }
   if(k === "+" || k === "="){ e.preventDefault(); zoomAt(1.25, originPoint()); return; }
   if(k === "-" || k === "_"){ e.preventDefault(); zoomAt(0.8, originPoint()); return; }
   if(k === "0"){ e.preventDefault(); resetView(); sync(); return; }
@@ -3656,6 +4093,63 @@ $("#modeSeg").addEventListener("click", function(e){
   setHint();
   sync();
 });
+$("#buildBtn").addEventListener("click", function(){ setBuild(!state.build); });
+$("#card-build").addEventListener("click", function(e){
+  var b = e.target.closest("[data-build]");
+  if(!b || b.disabled) return;
+  var w = b.getAttribute("data-build"), T = TR(), name, o, code, T2;
+  if(w === "pin" || w === "roller"){ setSupport(state.focus, w); }
+  else if(w === "load"){ addLoadAt(state.focus); }
+  else if(w === "deljoint"){ deleteJoint(state.focus); }
+  else if(w === "delmem"){
+    if(T.members[state.sel]) toggleMember(T.members[state.sel][0], T.members[state.sel][1]);
+  }
+  else if(w === "clear"){ clearTruss(); }
+  else if(w === "save"){
+    name = ($("#saveName").value || "").trim().slice(0, 40);
+    if(!name){ toast("Give it a name first, then press save."); return; }
+    o = readSaves();
+    o[name] = encodeTruss(T);
+    if(writeSaves(o)){ renderSaves(); $("#savedList").value = name; toast('Saved as \u201c' + name + '\u201d.'); }
+    else toast("This browser refused to store it \u2014 use copy code instead.");
+  }
+  else if(w === "open"){
+    name = $("#savedList").value;
+    o = readSaves();
+    if(!name || !o[name]){ toast("Nothing saved under that name."); return; }
+    T2 = decodeTruss(o[name]);
+    if(!T2){ toast("That saved truss could not be read."); return; }
+    adoptTruss(T2);
+    $("#saveName").value = name;
+    toast('Opened \u201c' + name + '\u201d. ' + countLine());
+  }
+  else if(w === "delsave"){
+    name = $("#savedList").value;
+    o = readSaves();
+    if(!name || !o[name]){ toast("Nothing saved under that name."); return; }
+    delete o[name];
+    writeSaves(o);
+    renderSaves();
+    toast('Deleted \u201c' + name + '\u201d.');
+  }
+  else if(w === "copy"){
+    code = encodeTruss(T);
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(
+        function(){ toast("Truss code copied. Paste it anywhere, or into the box to bring it back."); },
+        function(){ if(legacyCopy(code)) toast("Truss code copied."); else toast("Copying was blocked."); }
+      );
+    } else if(legacyCopy(code)) toast("Truss code copied.");
+    else toast("Copying was blocked here.");
+  }
+  else if(w === "paste"){
+    T2 = decodeTruss($("#codeIn").value);
+    if(!T2){ toast("That is not a truss code \u2014 check it was pasted whole."); return; }
+    adoptTruss(T2);
+    toast("Loaded. " + countLine());
+  }
+  sync();
+});
 $("#snapSeg").addEventListener("click", function(e){
   var b = e.target.closest("button");
   if(!b || !b.hasAttribute("data-snap")) return;
@@ -3733,6 +4227,9 @@ $("#card-practice").addEventListener("keydown", function(e){
   if(e.key === "Enter"){ e.preventDefault(); checkAnswers(); }
 });
 
+var BUILD_HINT = 'Build mode. Click empty space to drop a joint; click one joint then another to join or '
+  + 'unjoin them; click a member to select it. Drag a joint to move it. <kbd>Esc</kbd> puts down the picked '
+  + 'joint, <kbd>Delete</kbd> removes what is selected. The verdict in the Truss card updates as you go.';
 var HINTS = {
   joints:'Click a joint to march the worked solution as far as that joint; click a member to select it. Drag a joint '
     + 'to reshape the truss and watch the forces follow, or drag the tail of a load arrow to change its size and '
@@ -3746,7 +4243,7 @@ function setHint(){
   $("#stageHint").innerHTML = state.locked
     ? 'The truss is locked while you work. Read the geometry off the ruler and the dimension bars &mdash; scroll to '
       + 'zoom, drag to pan &mdash; then compute the answers before pressing Check.'
-    : HINTS[state.method];
+    : (state.build ? BUILD_HINT : HINTS[state.method]);
 }
 function setTab(t){
   state.tab = t;
@@ -3757,6 +4254,8 @@ function setTab(t){
   $("#card-loads").hidden = (t === "practice");
   $("#card-members").hidden = (t === "practice");
   state.locked = (t === "practice");
+  if(t !== "explore" && state.build){ state.build = false; state.pick = null; $("#buildBtn").classList.remove("on"); }
+  $("#card-build").hidden = !(state.build && t === "explore");
   setHint();
   if(t === "practice"){
     if(!state.practice) newProblem(); else render();
