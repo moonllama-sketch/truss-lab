@@ -67,6 +67,13 @@ Three tabs, as in the other labs.
   putting the moment centre at a support, dividing by the member length instead of
   its perpendicular arm — rather than being told merely "incorrect".
 
+On a screen wide enough for two columns, the two panes scroll independently: the
+diagram holds its place on the left, filling the height it is given, while the worked
+solution is read down the right. Nothing about a truss is legible if you have to
+scroll the picture off the screen to reach the algebra about it. Below the two-column
+breakpoint the layout stacks and the page scrolls as one, which is what a narrow
+screen wants.
+
 Copy-as-text and print buttons export the same worked solution, including the full
 member force table.
 
@@ -118,6 +125,14 @@ Before delivery the lab was driven headlessly over HTTP:
   states. That pair check is what turned up the crowding the placement pass then fixed:
   26 overlapping pairs per 40 states before, under 1 after, with the worst overlap
   shrinking from 374 px² to 133.
+- **The split panes measured at nine viewports** from 1300×420 to 1920×1080, and the
+  stacked layout at 1100×800 and 375×812: the right pane scrolls to the worked solution
+  with the diagram's top edge unmoved to the pixel, the document itself never scrolls,
+  no card is squeezed into clipping itself, and the SVG `viewBox` tracks its rendered
+  box exactly at every size — which is what keeps a click on a joint landing on that
+  joint. Checked against the drawn handles, the worst mapping error is 0.2 viewBox
+  units, and a synthesised click in Build mode still drops its joint on the snap point
+  under the cursor.
 - **Every text label on the stage across 40 practice problems**, to prove no member
   force, reaction or section value leaks onto the locked diagram before the student
   presses Check. It did, at first — the section arrows were drawn ungated, printing

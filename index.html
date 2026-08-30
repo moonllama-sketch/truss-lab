@@ -481,6 +481,40 @@ kbd{
   margin-top:22px;padding-top:14px;border-top:1px solid var(--rule);
   font-size:12px;color:var(--faint);max-width:78ch;
 }
+/* Two panes, each scrolling on its own, so the diagram stays put while the
+   solution is read.  Below the breakpoint the layout stacks and the page
+   scrolls as one, which is what a narrow screen wants. */
+@media screen and (min-width:1121px){
+  html,body{height:100%}
+  body{overflow:hidden}
+  .shell{
+    height:100vh;height:100dvh;
+    display:flex;flex-direction:column;padding-bottom:0;
+  }
+  .topbar{flex:none}
+  .layout{flex:1 1 auto;min-height:0;align-items:stretch;padding-bottom:16px}
+  .stage-wrap{min-height:0;display:flex;flex-direction:column;overflow:auto}
+  .stage-card{
+    position:static;flex:1 1 auto;min-height:430px;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .stage-head,.stage-hint{flex:none}
+  /* basis 0 so the height comes from the pane, never from the viewBox we are
+     about to set from it -- otherwise measure() chases its own tail */
+  #stage{flex:1 1 0;min-height:260px;height:auto}
+  .panel{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:3px}
+  /* the panel is a column flexbox with a definite height, so its cards would
+     shrink to fit rather than overflow -- and a shrunk card clips, it does not
+     scroll.  Keep them at their natural height and let the pane scroll. */
+  .panel>*{flex:0 0 auto}
+  .panel::-webkit-scrollbar,.stage-wrap::-webkit-scrollbar{width:10px}
+  .panel::-webkit-scrollbar-thumb,.stage-wrap::-webkit-scrollbar-thumb{
+    background:var(--rule-2);border-radius:6px;
+    border:3px solid transparent;background-clip:content-box;
+  }
+  .panel::-webkit-scrollbar-thumb:hover,.stage-wrap::-webkit-scrollbar-thumb:hover{background:var(--faint);background-clip:content-box}
+  .foot{margin-bottom:4px}
+}
 @media (max-width:1120px){
   .layout{grid-template-columns:minmax(0,1fr)}
   .stage-card{position:static}
@@ -772,10 +806,10 @@ kbd{
       <div class="checks" id="checks"></div>
     </section>
 
+    <p class="foot" id="footNote"></p>
+
   </aside>
 </main>
-
-<p class="foot" id="footNote"></p>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </div>
@@ -2018,11 +2052,19 @@ function legendSVG(sol){
   return s;
 }
 
+var fitMQ = (window.matchMedia ? window.matchMedia("screen and (min-width:1121px)") : null);
 function measure(){
-  var w = Math.round(stage.getBoundingClientRect().width);
+  var r = stage.getBoundingClientRect();
+  var w = Math.round(r.width), h;
   if(!(w > 0)) w = 800;
   w = Math.max(300, Math.min(1100, w));
-  var h = Math.round(w < 560 ? w*0.86 : w*0.62);
+  if(fitMQ && fitMQ.matches && r.height > 80){
+    /* the pane gives the stage its height; match the viewBox to the real box so
+       the drawing fills it and svgPoint() stays a straight linear map */
+    h = Math.max(260, Math.min(900, Math.round(r.height)));
+  } else {
+    h = Math.round(w < 560 ? w*0.86 : w*0.62);
+  }
   if(w !== VB.w || h !== VB.h){
     VB.w = w; VB.h = h;
     stage.setAttribute("viewBox", "0 0 " + w + " " + h);
@@ -2547,6 +2589,13 @@ function checksHTML(){
 
 /* ============================ panels ============================ */
 var lastAng = {};
+
+/* the right pane is its own scroller on a wide screen, so anything that
+   replaces what is at the top of it has to bring the top back into view */
+function panelTop(){
+  var p = $(".panel");
+  if(p && p.scrollTop) p.scrollTop = 0;
+}
 
 var CHIPS = {
   joints:[ {k:"showReactions", t:"Reactions"}, {k:"showForces", t:"Member forces"},
@@ -3453,6 +3502,7 @@ function applyStep(){
   $("#wDots").innerHTML = d;
   $("#wPrev").disabled = state.step === 0;
   $("#wNext").textContent = state.step === STEPS.length-1 ? "Finish" : "Next";
+  panelTop();
 }
 function refreshStepBody(){
   if(state.tab === "walk") $("#wBody").innerHTML = STEPS[state.step].b();
@@ -3542,7 +3592,7 @@ function makeTruss(kinds){
 
 function newProblem(){
   var tries;
-  for(tries=0;tries<24;tries++){ if(buildProblem() !== false) return; }
+  for(tries=0;tries<24;tries++){ if(buildProblem() !== false){ panelTop(); return; } }
 }
 function buildProblem(){
   var r = Math.random(), type, p = {scored:false, revealed:false};
@@ -4519,6 +4569,7 @@ function setTab(t){
     else { renderChips(); renderPresets(); render(); }
   }
   renderControls();
+  panelTop();
 }
 
 /* ============================ print / export ============================ */
