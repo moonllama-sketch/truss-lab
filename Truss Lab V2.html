@@ -495,10 +495,7 @@ kbd{
   .layout{flex:1 1 auto;min-height:0;align-items:stretch;padding-bottom:16px}
   .stage-wrap{min-height:0;display:flex;flex-direction:column;overflow:auto}
   .stage-card{
-    position:static;flex:1 1 auto;
-    /* a floor of its own content, so a short pane scrolls instead of the card
-       clipping its own hint off the bottom.  The px value is the fallback. */
-    min-height:430px;min-height:min-content;
+    position:static;flex:1 1 auto;min-height:430px;
     display:flex;flex-direction:column;overflow:hidden;
   }
   .stage-head,.stage-hint{flex:none}
