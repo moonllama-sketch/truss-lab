@@ -1501,10 +1501,10 @@ function txt(x,y,s,cls,style,anchor){
   y = clampNum(y, size*0.82 + 2, VB.h - 4);
   return '<text x="'+n(x)+'" y="'+n(y)+'" class="'+cls+'" text-anchor="'+anchor+'" style="'+(style||"")+'">'+s+'</text>';
 }
-function tailLabel(tail, tip, s, color, cls, extra){
+function tailLabel(tail, tip, s, color, cls, extra, drop){
   var dx = tip.x-tail.x, dy = tip.y-tail.y, L = Math.hypot(dx,dy) || 1;
   var k = (extra||0) + 14;
-  return txt(tail.x - dx/L*k, tail.y - dy/L*k + 4, s, cls||"blab", "fill:"+color);
+  return txt(tail.x - dx/L*k, tail.y - dy/L*k + 4 + (drop||0), s, cls||"blab", "fill:"+color);
 }
 function bar(a, b, fixed, color, label, vertical){
   var w = "stroke:"+color+";stroke-width:2.6px;opacity:.95;fill:none";
@@ -1698,7 +1698,7 @@ function loadsSVG(sol){
     var other = sp.tipAt ? tip : tail;
     s += tailLabel(anchor, other, loadName(i) + " = " + fmt(mag(ld.v),1) + " " + U().F, colorOf(i), "blab", 0);
     if(Math.abs(ld.v.x) > ZERO){
-      s += tailLabel(anchor, other, "at " + fmt(ang(ld.v),0) + "°", colorOf(i), "clab", 14);
+      s += tailLabel(anchor, other, "at " + fmt(ang(ld.v),0) + "°", colorOf(i), "clab", 0, 14);
     }
   }
   return s;
@@ -1721,8 +1721,14 @@ function reactionArrowSVG(p, F, dirY, name){
     tail = {x:p.x - (F > 0 ? L : -L), y:p.y};
   }
   s += arrow(tail, tip, CR, {w:4.2, head:15});
-  s += tailLabel(tail, tip, name + " = " + fmt(Math.abs(F),2) + " " + U().F, CR, "blab", 0);
-  if(dirY && F < 0) s += tailLabel(tail, tip, "holds down", CR, "clab", 14);
+  if(dirY){
+    s += tailLabel(tail, tip, name + " = " + fmt(Math.abs(F),2) + " " + U().F, CR, "blab", 0);
+    if(F < 0) s += tailLabel(tail, tip, "holds down", CR, "clab", 14);
+  } else {
+    /* along the axis the tail label would lie on the chord it is drawn beside */
+    s += txt((tip.x + tail.x)/2, tip.y - 11, name + " = " + fmt(Math.abs(F),2) + " " + U().F,
+             "blab", "fill:"+CR);
+  }
   return s;
 }
 function reactionsSVG(sol){
@@ -2913,12 +2919,15 @@ function renderSaves(){
   if(el) el.innerHTML = h;
 }
 
+function syncBuildUI(){
+  $("#card-build").hidden = !(state.build && state.tab !== "practice");
+  $("#buildBtn").classList.toggle("on", state.build);
+}
 function setBuild(on){
   state.build = !!on;
   if(!state.build){ state.pick = null; }
   state.hoverW = null;
-  $("#card-build").hidden = !(state.build && state.tab === "explore");
-  $("#buildBtn").classList.toggle("on", state.build);
+  syncBuildUI();
   setHint();
   renderSaves();
   render();
@@ -3178,7 +3187,69 @@ var STEPS = [
         + "<br>The chords resist the bending moment as a couple, so a longer lever arm needs less force. The web "
         + "resists the <i>shear</i>, which depth does not change &mdash; the vertical takes the same load however "
         + "deep the truss is, and the diagonal only gains because more of its length now points upward.<br><br>"
-        + "That is the whole argument for a truss. Now go to <b>Practice</b>.";
+        + "That is the whole argument for a truss &mdash; and the last step is to build one.";
+    }},
+  { t:"Build one yourself",
+    s:{method:"joints", build:true, showReactions:true, showForces:true, showFBD:false,
+       showZero:false, showDims:true},
+    enter:function(){
+      /* four bars round a rectangle: the classic one-member-short frame */
+      var S = 6, H = 4;
+      state.truss = {
+        kind:"custom", n:state.n, S:S, H:H,
+        nodes:[ nd("A",0,0), nd("B",S,0), nd("C",S,H), nd("D",0,H) ],
+        members:[[0,1],[1,2],[2,3],[3,0]],
+        pin:0, roller:1,
+        loads:[ {n:3, v:{x:30, y:0}} ]
+      };
+      state.kind = "custom";
+      state.focus = 0; state.sel = 0; state.pick = null;
+      tableKey = ""; memKey = "";
+      refitForce = true;
+      resetView();
+    },
+    b:function(){
+      var T = TR(), sol = solveTruss(T), d = sol.need - sol.have;
+      var solved = sol.count && sol.ok;
+      var head = "Press <b>Build</b> above any truss and the stage becomes an editor. Three gestures do "
+        + "everything: <b>click empty space</b> to drop a joint, <b>click two joints</b> to join or unjoin "
+        + "them, <b>drag a joint</b> to move it.<br><br>"
+        + "On the stage now is a rectangle: four bars, a pin at <b>A</b> and a roller at <b>B</b>, with "
+        + "30 " + U().F + " shoving the top corner <b>D</b> sideways. The Build card is keeping score:<br><br>"
+        + '<span class="mono">m + r = ' + sol.have + " against 2j = " + sol.need + '</span><br><br>';
+      if(!solved && d > 0){
+        return head
+          + "&mdash; " + d + " short. Nothing in that rectangle resists the shove. The four bars lean over "
+          + "into a parallelogram, every joint still pinned, not one bar stretched or squashed. It is a "
+          + "<b>mechanism</b>, and there is no set of bar forces to find &mdash; which is why the lab has "
+          + "nothing to put where the answers go.<br><br>"
+          + "<b>Click A, then click C</b> &mdash; opposite corners. A diagonal appears, the count balances, "
+          + "and the forces arrive.";
+      }
+      if(!solved){
+        return head
+          + "&mdash; the count balances, but the geometry still does not: somewhere this frame can move "
+          + "without stretching a single bar. That is the warning at the heart of step 2 &mdash; counting "
+          + "is <b>necessary but not sufficient</b>. Drag a joint off the line and it comes back to life.";
+      }
+      var i, dia = -1;
+      for(i=0;i<T.members.length;i++){
+        var a = T.nodes[T.members[i][0]], b2 = T.nodes[T.members[i][1]];
+        if(Math.abs(a.x-b2.x) > 1e-6 && Math.abs(a.y-b2.y) > 1e-6){ dia = i; break; }
+      }
+      return head
+        + "&mdash; balanced, and every bar force follows"
+        + (dia >= 0 ? ". One diagonal did that: <span class=\"mono\">" + memName(T, dia) + " = "
+             + fmt(sol.F[dia],2) + " " + U().F + " " + senseWord(sol.F[dia]) + "</span> now takes the shove, "
+             + "and the rectangle has become two triangles" : "")
+        + ". That is why trusses are made of triangles &mdash; and why every braced frame in every building "
+        + "has a diagonal in it. You have just proved it rather than been told it.<br><br>"
+        + "The rest is the same three gestures. The buttons act on the joint you last clicked &mdash; put "
+        + "the pin, the roller or a load on it, or delete it. <b>copy code</b> carries a whole truss out as "
+        + "one line of text to paste into a problem sheet; paste one back and <b>load code</b> rebuilds it "
+        + "exactly.<br><br>"
+        + "Build the truss from your own sheet, and check your hand working against it. Then go to "
+        + "<b>Practice</b>.";
     }}
 ];
 
@@ -3186,6 +3257,9 @@ function applyStep(){
   var st = STEPS[state.step], k;
   for(k in st.s){ if(Object.prototype.hasOwnProperty.call(st.s,k)) state[k] = st.s[k]; }
   if(st.enter) st.enter();
+  state.build = !!st.s.build;          /* only the last step wants the editor */
+  if(!state.build) state.pick = null;
+  syncBuildUI();
   clampTruss();
   renderChips();
   renderPresets();
@@ -4254,8 +4328,8 @@ function setTab(t){
   $("#card-loads").hidden = (t === "practice");
   $("#card-members").hidden = (t === "practice");
   state.locked = (t === "practice");
-  if(t !== "explore" && state.build){ state.build = false; state.pick = null; $("#buildBtn").classList.remove("on"); }
-  $("#card-build").hidden = !(state.build && t === "explore");
+  if(t === "practice" && state.build){ state.build = false; state.pick = null; }
+  syncBuildUI();
   setHint();
   if(t === "practice"){
     if(!state.practice) newProblem(); else render();

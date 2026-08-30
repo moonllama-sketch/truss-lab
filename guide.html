@@ -614,7 +614,7 @@ ul.plain li::marker{color:var(--rule-2)}
   <div class="body">
     <h2>The screen</h2>
     <p>Three tabs across the top. <span class="k">Explore</span> is a sandbox, <span class="k">Walkthrough</span>
-    is a ten-step tour that drives the sandbox for you, and <span class="k">Practice</span> generates
+    is an eleven-step tour that drives the sandbox for you, and <span class="k">Practice</span> generates
     problems and marks them. Beside them, a switch between <span class="k">Joints</span> and
     <span class="k">Sections</span> &mdash; the same truss, two routes to the same numbers, and the checks
     at the foot of the worked solution compare them.</p>
@@ -697,8 +697,9 @@ ul.plain li::marker{color:var(--rule-2)}
   <div class="rail"><span class="tag">Building<br>your own</span></div>
   <div class="body">
     <h2>Draw a truss and watch it decide</h2>
-    <p>Press <span class="k">Build</span> above the diagram and the stage becomes an editor. There are only three
-    gestures, and they compose into everything:</p>
+    <p>Press <span class="k">Build</span> above the diagram and the stage becomes an editor. The last step of the
+    walkthrough drops you straight into it with a rectangle to fix. There are only three gestures, and they compose
+    into everything:</p>
 
     <ul class="plain">
       <li><strong>Click empty space</strong> &mdash; drops a joint there. If a joint is already picked up, the new
@@ -720,8 +721,11 @@ ul.plain li::marker{color:var(--rule-2)}
       member would balance the count</span>. Add that member and it flips to <em>determinate</em>. Add one more and
       it tells you the truss is now indeterminate and statics alone can no longer finish it.</p>
       <p>This is the counting rule from the top of this guide, turned into something you can feel. Build a
-      rectangle of four bars and it will tell you it is short; put in a diagonal and it settles. That is why trusses
-      are made of triangles, demonstrated rather than asserted.</p>
+      rectangle of four bars, shove its top corner sideways, and it will tell you it is one short &mdash; nothing in
+      it resists the shove, and the four bars simply lean over into a parallelogram. Join two opposite corners and
+      the count settles, the diagonal picks up the whole shove, and the rectangle has become two triangles. That is
+      why trusses are made of triangles, and why every braced frame in every building has a diagonal in it &mdash;
+      demonstrated rather than asserted.</p>
     </div>
 
     <div class="warnbox">

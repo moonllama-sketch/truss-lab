@@ -55,9 +55,11 @@ Three tabs, as in the other labs.
   balance the count* — which turns `m + r = 2j` from a rule into something you can
   feel. Trusses can be saved in the browser, or copied out as a one-line code that
   pastes back exactly, so a truss can travel into a problem sheet and back.
-- **Walkthrough** — ten numbered steps from "every member is a two-force member" to
-  "a truss is a beam turned inside out", each driving the sandbox and narrating it
-  with live numbers from the truss actually on screen.
+- **Walkthrough** — eleven numbered steps from "every member is a two-force member"
+  to "build one yourself", each driving the sandbox and narrating it with live numbers
+  from the truss actually on screen. The last step hands over to the editor with a
+  rectangle under a sideways shove: one member short, going nowhere, until you join two
+  opposite corners and the diagonal takes the whole 36.06 kN.
 - **Practice** — seven generators, marked, with a revealable worked solution:
   reactions, a support joint, zero-force members, a marched chain, a chord by
   sections, a diagonal by sections, and a design question on truss depth. Wrong
